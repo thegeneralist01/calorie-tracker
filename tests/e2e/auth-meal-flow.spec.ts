@@ -47,6 +47,12 @@ test('user can register and log a meal', async ({ page }) => {
   await expect(page).toHaveURL('/');
   await expect(page.locator('#sum-eaten')).not.toHaveText('0 kcal');
 
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(page).toHaveURL('/settings');
+  await page.getByRole('link', { name: 'Today' }).click();
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('#sum-eaten')).not.toHaveText('0 kcal');
+
   await page.goto('/history');
   await expect(page).toHaveURL('/history');
 

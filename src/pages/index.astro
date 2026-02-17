@@ -114,82 +114,105 @@ const mealRows = [
   </section>
 
       <script>
-    // @ts-nocheck
-    async function addWater(amountMl) {
-      await fetch('/api/logs/water', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ amountMl })
-      });
-      await loadSummary();
-    }
+        // @ts-nocheck
+        async function loadSummary() {
+          const eatenNode = document.querySelector('#sum-eaten');
+          if (!eatenNode) {
+            return;
+          }
 
-    document.querySelectorAll('[data-water]').forEach((button) => {
-      button.addEventListener('click', () => addWater(Number(button.getAttribute('data-water'))));
-    });
+          const [mealRes, goalRes, activityRes, waterRes] = await Promise.all([
+            fetch('/api/logs/meals'),
+            fetch('/api/goals'),
+            fetch('/api/logs/activities'),
+            fetch('/api/logs/water')
+          ]);
+          if (!mealRes.ok) {
+            return;
+          }
 
-    async function loadSummary() {
-      const [mealRes, goalRes, activityRes, waterRes] = await Promise.all([
-        fetch('/api/logs/meals'),
-        fetch('/api/goals'),
-        fetch('/api/logs/activities'),
-        fetch('/api/logs/water')
-      ]);
-      if (!mealRes.ok) {
-        return;
-      }
+          const mealData = await mealRes.json();
+          const goalData = goalRes.ok ? await goalRes.json() : { goal: null };
+          const targetCalories = goalData.goal?.dailyCalorieTarget ?? 2000;
 
-      const mealData = await mealRes.json();
-      const goalData = goalRes.ok ? await goalRes.json() : { goal: null };
-      const targetCalories = goalData.goal?.dailyCalorieTarget ?? 2000;
+          let eaten = 0;
+          let protein = 0;
+          let carbs = 0;
+          let fat = 0;
+          let burned = 0;
+          const mealTotals = {
+            BREAKFAST: 0,
+            LUNCH: 0,
+            DINNER: 0,
+            SNACKS: 0
+          } as Record<string, number>;
 
-      let eaten = 0;
-      let protein = 0;
-      let carbs = 0;
-      let fat = 0;
-      let burned = 0;
-      const mealTotals = {
-        BREAKFAST: 0,
-        LUNCH: 0,
-        DINNER: 0,
-        SNACKS: 0
-      } as Record<string, number>;
+          (mealData.entries ?? []).forEach((entry) => {
+            eaten += Number(entry.calories ?? 0);
+            protein += Number(entry.protein ?? 0);
+            carbs += Number(entry.carbs ?? 0);
+            fat += Number(entry.fat ?? 0);
+            mealTotals[String(entry.mealType)] =
+              (mealTotals[String(entry.mealType)] ?? 0) + Number(entry.calories ?? 0);
+          });
 
-      (mealData.entries ?? []).forEach((entry) => {
-        eaten += Number(entry.calories ?? 0);
-        protein += Number(entry.protein ?? 0);
-        carbs += Number(entry.carbs ?? 0);
-        fat += Number(entry.fat ?? 0);
-        mealTotals[String(entry.mealType)] = (mealTotals[String(entry.mealType)] ?? 0) + Number(entry.calories ?? 0);
-      });
+          if (activityRes.ok) {
+            const activityData = await activityRes.json();
+            burned = Number(activityData.burned ?? 0);
+          }
 
-      if (activityRes.ok) {
-        const activityData = await activityRes.json();
-        burned = Number(activityData.burned ?? 0);
-      }
+          eatenNode.textContent = `${Math.round(eaten)} kcal`;
+          document.querySelector('#sum-remaining')!.textContent = `${Math.round(
+            Math.max(0, targetCalories - eaten + burned)
+          )} kcal`;
+          document.querySelector('#sum-burned')!.textContent = `${Math.round(burned)} kcal`;
+          document.querySelector('#sum-carbs')!.textContent = `${carbs.toFixed(1)} g`;
+          document.querySelector('#sum-protein')!.textContent = `${protein.toFixed(1)} g`;
+          document.querySelector('#sum-fat')!.textContent = `${fat.toFixed(1)} g`;
 
-      document.querySelector('#sum-eaten')!.textContent = `${Math.round(eaten)} kcal`;
-      document.querySelector('#sum-remaining')!.textContent = `${Math.round(Math.max(0, targetCalories - eaten + burned))} kcal`;
-      document.querySelector('#sum-burned')!.textContent = `${Math.round(burned)} kcal`;
-      document.querySelector('#sum-carbs')!.textContent = `${carbs.toFixed(1)} g`;
-      document.querySelector('#sum-protein')!.textContent = `${protein.toFixed(1)} g`;
-      document.querySelector('#sum-fat')!.textContent = `${fat.toFixed(1)} g`;
+          Object.entries(mealTotals).forEach(([key, value]) => {
+            const node = document.querySelector(`[data-meal-kcal="${key}"]`);
+            if (node) {
+              node.textContent = String(Math.round(value));
+            }
+          });
 
-      Object.entries(mealTotals).forEach(([key, value]) => {
-        const node = document.querySelector(`[data-meal-kcal="${key}"]`);
-        if (node) {
-          node.textContent = String(Math.round(value));
+          if (waterRes.ok) {
+            const waterData = await waterRes.json();
+            const currentWater = Number(waterData.totalMl ?? 0) / 1000;
+            document.querySelector('#water-total')!.textContent = `${currentWater.toFixed(2)} L`;
+          }
         }
-      });
 
-      if (waterRes.ok) {
-        const waterData = await waterRes.json();
-        const currentWater = Number(waterData.totalMl ?? 0) / 1000;
-        document.querySelector('#water-total')!.textContent = `${currentWater.toFixed(2)} L`;
-      }
-    }
+        async function addWater(amountMl) {
+          await fetch('/api/logs/water', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ amountMl })
+          });
+          await loadSummary();
+        }
 
-    loadSummary();
+        function setupTodayPage() {
+          if (!document.querySelector('#sum-eaten')) {
+            return;
+          }
+
+          document.querySelectorAll('[data-water]').forEach((button) => {
+            if (button.dataset.bound === 'true') {
+              return;
+            }
+            button.dataset.bound = 'true';
+            button.addEventListener('click', () => {
+              addWater(Number(button.getAttribute('data-water')));
+            });
+          });
+
+          loadSummary();
+        }
+
+        document.addEventListener('astro:page-load', setupTodayPage);
+        setupTodayPage();
       </script>
       </>
     )
