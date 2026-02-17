@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum GoalType {
+  LOSE_WEIGHT
+  GAIN_WEIGHT
+  MAINTAIN_WEIGHT
+  BUILD_MUSCLE
+  JUST_TRACKING
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+}
+
+enum ProductPublicationStatus {
+  LOCAL_ONLY
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+enum ProductDataSource {
+  MANUAL
+  VERIFIED_LABEL
+  BARCODE_DB
+  USER_EDITED
+  AI_ESTIMATE
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ActivityInputMethod {
+  DIRECT_CALORIES
+  ESTIMATED
+}
+
+model User {
+  id                   String            @id @default(cuid())
+  username             String            @unique
+  email                String            @unique
+  passwordHash         String
+  isAdmin              Boolean           @default(false)
+  emailVerifiedAt      DateTime?
+  locale               String            @default("en")
+  dayCutoffMinutes     Int               @default(0)
+  weekStartsOn         Int               @default(1)
+  scheduledDeletionAt  DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  sessions             Session[]
+  goal                 Goal?
+  settings             UserSettings?
+  products             Product[]
+  mealEntries          MealEntry[]
+  waterEntries         WaterEntry[]
+  activityEntries      ActivityEntry[]
+  productSubmissions   ProductSubmission[] @relation("SubmissionAuthor")
+  moderationReviews    ProductSubmission[] @relation("SubmissionReviewer")
+  moderationAuditLogs  ModerationAuditLog[]
+  productContributions ProductContribution[]
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  tokenHash      String   @unique
+  rememberDevice Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  lastActiveAt   DateTime @default(now())
+  expiresAt      DateTime
+  recentAuthAt   DateTime @default(now())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Goal {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  type                   GoalType @default(MAINTAIN_WEIGHT)
+  calorieFormula         String   @default("MIFFLIN_ST_JEOR")
+  dailyCalorieTarget     Int?
+  proteinGramsTarget     Int?
+  carbsGramsTarget       Int?
+  fatGramsTarget         Int?
+  adaptiveSuggestions    Boolean  @default(true)
+  requiresApproval       Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  waterGoalLiters            Float    @default(2.0)
+  useMetricDistance          Boolean  @default(true)
+  precisionMode              String   @default("BASIC")
+  weekStartConfigurable      Boolean  @default(true)
+  remindersEnabled           Boolean  @default(true)
+  reminderQuietHoursStart    String?  @default("22:00")
+  reminderQuietHoursEnd      String?  @default("07:00")
+  pwaInstallPromptDismissed  Boolean  @default(false)
+  pwaUpdateToastEnabled      Boolean  @default(true)
+  aiPhotoEstimationEnabled   Boolean  @default(false)
+  aiPhotoConsentAt           DateTime?
+  aiPhotoConsentPolicy       String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id                  String                   @id @default(cuid())
+  ownerUserId         String?
+  name                String
+  brand               String?
+  barcode             String?
+  qrCode              String?
+  region              String?
+  packageSizeLabel    String?
+  servingSizeLabel    String?
+  calories            Float?
+  protein             Float?
+  carbs               Float?
+  fat                 Float?
+  source              ProductDataSource        @default(MANUAL)
+  isAiEstimated       Boolean                  @default(false)
+  isGlobal            Boolean                  @default(false)
+  publicationStatus   ProductPublicationStatus @default(LOCAL_ONLY)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  publishedAt         DateTime?
+  owner               User?                    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  submissions         ProductSubmission[]
+  contributions       ProductContribution[]
+  mealEntries         MealEntry[]
+
+  @@index([ownerUserId])
+  @@index([isGlobal, publicationStatus])
+  @@index([barcode, brand, region])
+}
+
+model ProductSubmission {
+  id            String           @id @default(cuid())
+  productId     String
+  submittedById String
+  reviewedById  String?
+  labelPhotoUrl String?
+  status        ModerationStatus @default(PENDING)
+  reason        String?
+  createdAt     DateTime         @default(now())
+  reviewedAt    DateTime?
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  submittedBy   User             @relation("SubmissionAuthor", fields: [submittedById], references: [id], onDelete: Cascade)
+  reviewedBy    User?            @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([productId, status])
+}
+
+model ProductContribution {
+  id            String           @id @default(cuid())
+  productId     String
+  contributorId String
+  payloadJson   String
+  status        ModerationStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  reviewedAt    DateTime?
+  reviewedById  String?
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  contributor   User             @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+
+  @@index([productId, status])
+}
+
+model ModerationAuditLog {
+  id            String   @id @default(cuid())
+  actorUserId   String
+  targetType    String
+  targetId      String
+  action        String
+  reason        String?
+  beforeJson    String?
+  afterJson     String?
+  createdAt     DateTime @default(now())
+  actor         User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+}
+
+model MealEntry {
+  id               String   @id @default(cuid())
+  userId           String
+  productId        String?
+  mealType         MealType
+  consumedAt       DateTime
+  quantityValue    Float
+  quantityUnit     String
+  calories         Float
+  protein          Float
+  carbs            Float
+  fat              Float
+  snapshotJson     String
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId, consumedAt])
+}
+
+model WaterEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  amountMl   Int
+  consumedAt DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt])
+}
+
+model ActivityEntry {
+  id              String              @id @default(cuid())
+  userId          String
+  name            String
+  method          ActivityInputMethod
+  durationMinutes Int?
+  distanceKm      Float?
+  intensity       Float?
+  caloriesBurned  Float
+  startedAt       DateTime
+  createdAt       DateTime            @default(now())
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}

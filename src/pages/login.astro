@@ -1,0 +1,58 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+
+const locale: 'en' | 'de' = 'en';
+---
+
+<AppLayout title="Login" currentTab="auth" locale={locale}>
+  <section class="mx-auto mt-8 max-w-md rounded-2xl app-card p-5">
+    <h1 class="mb-4 text-2xl font-semibold">Sign in</h1>
+    <form id="login-form" class="space-y-3">
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Email</span>
+        <input required type="email" name="email" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Password</span>
+        <input required type="password" name="password" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+      </label>
+      <button type="submit" class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">
+        Sign in
+      </button>
+    </form>
+    <p class="mt-3 text-sm text-slate-600">
+      No account yet?
+      <a href="/register" class="font-medium text-brand-700">Create one</a>
+    </p>
+    <p id="login-error" class="mt-2 text-sm text-rose-600"></p>
+  </section>
+
+  <script>
+    // @ts-nocheck
+    const form = document.querySelector('#login-form') as HTMLFormElement;
+    const errorField = document.querySelector('#login-error') as HTMLParagraphElement;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorField.textContent = '';
+
+      const data = new FormData(form);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email: String(data.get('email')),
+          password: String(data.get('password'))
+        })
+      });
+
+      if (!response.ok) {
+        const payload = await response.json();
+        errorField.textContent = payload.error ?? 'Sign in failed.';
+        return;
+      }
+
+      window.location.href = '/';
+    });
+  </script>
+</AppLayout>

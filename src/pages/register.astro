@@ -1,0 +1,75 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+
+const locale: 'en' | 'de' = 'en';
+---
+
+<AppLayout title="Register" currentTab="auth" locale={locale}>
+  <section class="mx-auto mt-8 max-w-md rounded-2xl app-card p-5">
+    <h1 class="mb-4 text-2xl font-semibold">Create account</h1>
+    <form id="register-form" class="space-y-3">
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Username</span>
+        <input required type="text" name="username" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Email</span>
+        <input required type="email" name="email" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Password</span>
+        <input required type="password" name="password" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-slate-700">Goal</span>
+        <select name="goalType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+          <option value="LOSE_WEIGHT">Lose weight</option>
+          <option value="GAIN_WEIGHT">Gain weight</option>
+          <option value="MAINTAIN_WEIGHT" selected>Maintain weight</option>
+          <option value="BUILD_MUSCLE">Build muscle</option>
+          <option value="JUST_TRACKING">Just tracking</option>
+        </select>
+      </label>
+      <button type="submit" class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">
+        Create account
+      </button>
+    </form>
+    <p class="mt-3 text-sm text-slate-600">
+      Already registered?
+      <a href="/login" class="font-medium text-brand-700">Sign in</a>
+    </p>
+    <p id="register-error" class="mt-2 text-sm text-rose-600"></p>
+  </section>
+
+  <script>
+    // @ts-nocheck
+    const form = document.querySelector('#register-form') as HTMLFormElement;
+    const errorField = document.querySelector('#register-error') as HTMLParagraphElement;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorField.textContent = '';
+
+      const data = new FormData(form);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: String(data.get('username')),
+          email: String(data.get('email')),
+          password: String(data.get('password')),
+          goalType: String(data.get('goalType')),
+          locale: navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en'
+        })
+      });
+
+      if (!response.ok) {
+        const payload = await response.json();
+        errorField.textContent = payload.error ?? 'Registration failed.';
+        return;
+      }
+
+      window.location.href = '/';
+    });
+  </script>
+</AppLayout>

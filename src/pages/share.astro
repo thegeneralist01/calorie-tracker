@@ -1,0 +1,97 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import AuthRequired from '../components/AuthRequired.astro';
+
+const locale: 'en' | 'de' = 'en';
+const user = (Astro.locals as any)?.user ?? null;
+---
+
+<AppLayout title="Share Progress" currentTab="profile" locale={locale}>
+  {
+    !user ? (
+      <AuthRequired />
+    ) : (
+      <>
+  <section class="mb-4 rounded-2xl app-card p-4 rise">
+    <h1 class="mb-2 text-xl font-semibold">Share Card</h1>
+    <p class="text-sm text-slate-600">Pick metrics and export a shareable image card.</p>
+
+    <div class="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-700">
+      <label class="inline-flex items-center gap-2"><input type="checkbox" data-metric="calories" checked /> Calories</label>
+      <label class="inline-flex items-center gap-2"><input type="checkbox" data-metric="burned" checked /> Burned</label>
+      <label class="inline-flex items-center gap-2"><input type="checkbox" data-metric="protein" checked /> Protein</label>
+      <label class="inline-flex items-center gap-2"><input type="checkbox" data-metric="water" checked /> Water</label>
+    </div>
+
+    <button id="download-card" class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Download card</button>
+  </section>
+
+  <section class="rounded-2xl app-card p-4 rise rise-delay-1">
+    <h2 class="mb-3 text-lg font-semibold">Preview</h2>
+    <div id="card-preview" class="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white">
+      <p class="text-xs uppercase tracking-[0.2em] text-white/70">Calorie Tracker</p>
+      <p class="mt-3 text-3xl font-semibold">Weekly Progress</p>
+      <ul id="card-metrics" class="mt-5 space-y-1 text-sm text-white/90">
+        <li>Calories: 12,420 kcal</li>
+        <li>Burned: 2,350 kcal</li>
+        <li>Protein: 860 g</li>
+        <li>Water: 16.8 L</li>
+      </ul>
+    </div>
+  </section>
+      </>
+    )
+  }
+
+  <script>
+    // @ts-nocheck
+    const values = {
+      calories: '12,420 kcal',
+      burned: '2,350 kcal',
+      protein: '860 g',
+      water: '16.8 L'
+    };
+
+    const labels = {
+      calories: 'Calories',
+      burned: 'Burned',
+      protein: 'Protein',
+      water: 'Water'
+    };
+
+    const checkboxes = Array.from(document.querySelectorAll('[data-metric]'));
+    const cardMetrics = document.querySelector('#card-metrics');
+
+    function renderCardMetrics() {
+      const enabled = checkboxes
+        .filter((box) => box.checked)
+        .map((box) => box.getAttribute('data-metric'));
+
+      cardMetrics.innerHTML = enabled.map((key) => `<li>${labels[key]}: ${values[key]}</li>`).join('');
+    }
+
+    async function downloadCard() {
+      const enabled = checkboxes
+        .filter((box) => box.checked)
+        .map((box) => box.getAttribute('data-metric'));
+
+      const rows = enabled
+        .map((key, index) => `<text x="42" y="${180 + index * 36}" font-size="24" fill="#eaf8f5">${labels[key]}: ${values[key]}</text>`)
+        .join('');
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#178c73" offset="0%" /><stop stop-color="#094638" offset="100%" /></linearGradient></defs><rect width="1080" height="1080" fill="url(#bg)" rx="80"/><text x="42" y="86" font-size="26" fill="#9fe0cf" letter-spacing="6">CALORIE TRACKER</text><text x="42" y="142" font-size="56" fill="#ffffff" font-weight="700">Weekly Progress</text>${rows}</svg>`;
+
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'progress-card.svg';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    checkboxes.forEach((box) => box.addEventListener('change', renderCardMetrics));
+    document.querySelector('#download-card')?.addEventListener('click', downloadCard);
+    renderCardMetrics();
+  </script>
+</AppLayout>

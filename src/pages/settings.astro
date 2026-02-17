@@ -1,0 +1,210 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import AuthRequired from '../components/AuthRequired.astro';
+
+const locale: 'en' | 'de' = 'en';
+const user = (Astro.locals as any)?.user ?? null;
+---
+
+<AppLayout title="Settings" currentTab="settings" locale={locale}>
+  {
+    !user ? (
+      <AuthRequired />
+    ) : (
+      <>
+  <section class="mb-4 rounded-2xl app-card p-4 rise">
+    <h1 class="mb-4 text-xl font-semibold">Settings</h1>
+    <form id="settings-form" class="space-y-4">
+      <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-slate-800">Localization and time</legend>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Language</span>
+            <select name="locale" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <option selected value="en">English</option>
+              <option value="de">Deutsch</option>
+            </select>
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Day cutoff (minutes)</span>
+            <input
+              type="number"
+              min="0"
+              max="1439"
+              name="dayCutoffMinutes"
+              value={0}
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+            />
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Week starts on</span>
+            <select name="weekStartsOn" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <option value="0">Sunday</option>
+              <option selected value="1">Monday</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-slate-800">Units and precision</legend>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Water goal (L)</span>
+            <input
+              type="number"
+              min="0.5"
+              max="10"
+              step="0.1"
+              name="waterGoalLiters"
+              value={2}
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+            />
+          </label>
+          <label class="inline-flex items-center gap-2 pt-7 text-sm text-slate-700">
+            <input type="checkbox" name="useMetricDistance" checked />
+            Use metric distance (km)
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Precision</span>
+            <select name="precisionMode" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <option selected value="BASIC">Basic</option>
+              <option value="ADVANCED">Advanced</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-slate-800">Reminders</legend>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label class="inline-flex items-center gap-2 pt-7 text-sm text-slate-700">
+            <input type="checkbox" name="remindersEnabled" checked />
+            Enable reminders
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Quiet start</span>
+            <input
+              type="time"
+              name="reminderQuietHoursStart"
+              value="22:00"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+            />
+          </label>
+          <label class="block text-sm">
+            <span class="mb-1 block text-slate-700">Quiet end</span>
+            <input
+              type="time"
+              name="reminderQuietHoursEnd"
+              value="07:00"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-slate-800">AI photo estimation</legend>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="aiPhotoEstimationEnabled" />
+          Enable (opt-in required, images deleted after parse)
+        </label>
+      </fieldset>
+
+      <button type="submit" class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">
+        Save settings
+      </button>
+    </form>
+  </section>
+
+  <section class="rounded-2xl app-card p-4 rise rise-delay-1">
+    <h2 class="text-lg font-semibold">Account actions</h2>
+    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+      <button id="export-json" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+        Export JSON
+      </button>
+      <button id="export-csv" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+        Export CSV
+      </button>
+      <button id="schedule-delete" class="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+        Schedule account deletion (+14 days)
+      </button>
+      <button id="undo-delete" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+        Undo deletion
+      </button>
+    </div>
+  </section>
+      </>
+    )
+  }
+
+  <script>
+    // @ts-nocheck
+    const settingsForm = document.querySelector('#settings-form');
+    if (settingsForm) {
+      settingsForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(settingsForm as HTMLFormElement);
+
+        const body = {
+          locale: String(formData.get('locale')),
+          dayCutoffMinutes: Number(formData.get('dayCutoffMinutes')),
+          weekStartsOn: Number(formData.get('weekStartsOn')),
+          waterGoalLiters: Number(formData.get('waterGoalLiters')),
+          useMetricDistance: Boolean(formData.get('useMetricDistance')),
+          precisionMode: String(formData.get('precisionMode')),
+          remindersEnabled: Boolean(formData.get('remindersEnabled')),
+          reminderQuietHoursStart: String(formData.get('reminderQuietHoursStart')),
+          reminderQuietHoursEnd: String(formData.get('reminderQuietHoursEnd')),
+          aiPhotoEstimationEnabled: Boolean(formData.get('aiPhotoEstimationEnabled'))
+        };
+
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        }
+      });
+    }
+
+    const toDownload = (filename: string, contents: string) => {
+      const blob = new Blob([contents], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    };
+
+    document.querySelector('#export-json')?.addEventListener('click', async () => {
+      const [profile, goals, products] = await Promise.all([
+        fetch('/api/auth/me').then((res) => res.json()),
+        fetch('/api/goals').then((res) => res.json()),
+        fetch('/api/products').then((res) => res.json())
+      ]);
+      toDownload('calorie-tracker-export.json', JSON.stringify({ profile, goals, products }, null, 2));
+    });
+
+    document.querySelector('#export-csv')?.addEventListener('click', async () => {
+      const productData = await fetch('/api/products').then((res) => res.json());
+      const header = ['id', 'name', 'brand', 'calories', 'protein', 'carbs', 'fat'];
+      const rows = (productData.products ?? []).map((item: any) =>
+        [item.id, item.name, item.brand ?? '', item.calories ?? '', item.protein ?? '', item.carbs ?? '', item.fat ?? ''].join(',')
+      );
+      toDownload('products.csv', [header.join(','), ...rows].join('\n'));
+    });
+
+    document.querySelector('#schedule-delete')?.addEventListener('click', async () => {
+      await fetch('/api/auth/delete-account', { method: 'POST' });
+    });
+
+    document.querySelector('#undo-delete')?.addEventListener('click', async () => {
+      await fetch('/api/auth/undo-delete', { method: 'POST' });
+    });
+  </script>
+</AppLayout>

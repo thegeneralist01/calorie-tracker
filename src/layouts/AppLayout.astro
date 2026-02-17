@@ -1,0 +1,140 @@
+---
+import '../styles/global.css';
+import { getDictionary } from '../lib/i18n';
+
+interface Props {
+  title: string;
+  currentTab: 'today' | 'add' | 'settings' | 'history' | 'profile' | 'auth';
+  locale?: 'en' | 'de';
+}
+
+const { title, currentTab, locale = 'en' } = Astro.props;
+const t = getDictionary(locale);
+const user = (Astro.locals as any)?.user ?? null;
+
+const tabs = [
+  { key: 'today', href: '/', label: t.navToday },
+  { key: 'add', href: '/add', label: t.navAdd },
+  { key: 'settings', href: '/settings', label: t.navSettings }
+] as const;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f766e" />
+    <title>{title}</title>
+  </head>
+  <body class="font-sans antialiased">
+    <div class="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 pb-28 pt-4 sm:px-6">
+      <header class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <a href="/" class="text-lg font-semibold text-slate-900">{t.appName}</a>
+        <div class="flex items-center gap-2 text-sm">
+          {
+            currentTab === 'today' ? (
+              <>
+                <a
+                  href="/history"
+                  class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 transition hover:bg-slate-100"
+                >
+                  {t.quickCalendar}
+                </a>
+                <a
+                  href="/profile"
+                  class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 transition hover:bg-slate-100"
+                >
+                  {t.quickProfile}
+                </a>
+              </>
+            ) : null
+          }
+          {
+            user ? (
+              <button
+                id="logout-button"
+                type="button"
+                class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 transition hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            ) : (
+              <a
+                href="/login"
+                class="rounded-full bg-brand-600 px-3 py-1 font-medium text-white transition hover:bg-brand-700"
+              >
+                Login
+              </a>
+            )
+          }
+        </div>
+      </header>
+
+      <main class="flex-1 rise">
+        <slot />
+      </main>
+    </div>
+
+    {
+      currentTab !== 'auth' ? (
+        <nav class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
+          <ul class="mx-auto grid max-w-3xl grid-cols-3 gap-2 px-4 py-3 sm:px-6">
+            {tabs.map((tab) => (
+              <li>
+                <a
+                  href={tab.href}
+                  class:list={[
+                    'block rounded-xl px-4 py-3 text-center text-sm font-medium transition',
+                    currentTab === tab.key
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-900/20'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ]}
+                >
+                  {tab.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null
+    }
+
+    <script>
+      // @ts-nocheck
+      const statusBar = document.createElement('div');
+      statusBar.className =
+        'pointer-events-none fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs text-white opacity-0 transition';
+      document.body.append(statusBar);
+
+      import('virtual:pwa-register')
+        .then(({ registerSW }) => {
+          registerSW({
+            immediate: true,
+            onOfflineReady() {
+              statusBar.textContent = 'Offline mode ready';
+              statusBar.classList.remove('opacity-0');
+              setTimeout(() => statusBar.classList.add('opacity-0'), 2400);
+            },
+            onNeedRefresh() {
+              statusBar.textContent = 'New version available. Refresh to update.';
+              statusBar.classList.remove('opacity-0');
+            }
+          });
+        })
+        .catch(() => {
+          statusBar.remove();
+        });
+
+      document.querySelector('#logout-button')?.addEventListener('click', async () => {
+        await fetch('/api/auth/logout', {
+          method: 'POST'
+        });
+        window.location.href = '/login';
+      });
+    </script>
+  </body>
+</html>

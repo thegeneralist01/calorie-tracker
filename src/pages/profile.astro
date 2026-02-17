@@ -1,0 +1,118 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import AuthRequired from '../components/AuthRequired.astro';
+
+const locale: 'en' | 'de' = 'en';
+const user = (Astro.locals as any)?.user ?? null;
+---
+
+<AppLayout title="Profile" currentTab="profile" locale={locale}>
+  {
+    !user ? (
+      <AuthRequired />
+    ) : (
+      <>
+  <section class="mb-4 rounded-2xl app-card p-4 rise">
+    <h1 class="text-xl font-semibold">Profile</h1>
+    <p id="profile-meta" class="mt-1 text-sm text-slate-600">Loading profile...</p>
+
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="rounded-xl bg-brand-50 p-3">
+        <p class="text-xs text-slate-500">Streak</p>
+        <p class="text-lg font-semibold">7 days</p>
+      </div>
+      <div class="rounded-xl bg-brand-50 p-3">
+        <p class="text-xs text-slate-500">Goals</p>
+        <p id="goal-meta" class="text-lg font-semibold">-</p>
+      </div>
+      <div class="rounded-xl bg-brand-50 p-3">
+        <p class="text-xs text-slate-500">Badges</p>
+        <p class="text-lg font-semibold">3</p>
+      </div>
+      <div class="rounded-xl bg-brand-50 p-3">
+        <p class="text-xs text-slate-500">Reminders</p>
+        <p class="text-lg font-semibold">On</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-4 rounded-2xl app-card p-4 rise rise-delay-1">
+    <h2 class="mb-3 text-lg font-semibold">Your products</h2>
+    <ul id="product-list" class="space-y-2 text-sm text-slate-700"></ul>
+  </section>
+
+  <section class="rounded-2xl app-card p-4 rise rise-delay-2">
+    <a href="/share" class="mb-3 inline-flex rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white">Create share card</a>
+    <h2 class="mb-3 text-lg font-semibold">Admin moderation (inline)</h2>
+    <ul id="submission-list" class="space-y-2 text-sm text-slate-700"></ul>
+  </section>
+      </>
+    )
+  }
+
+  <script>
+    // @ts-nocheck
+    const profileMeta = document.querySelector('#profile-meta') as HTMLParagraphElement;
+    const goalMeta = document.querySelector('#goal-meta') as HTMLParagraphElement;
+    const productList = document.querySelector('#product-list') as HTMLUListElement;
+    const submissionList = document.querySelector('#submission-list') as HTMLUListElement;
+
+    async function loadProfile() {
+      const [meRes, goalsRes, productsRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/goals'),
+        fetch('/api/products')
+      ]);
+
+      if (!meRes.ok) {
+        profileMeta.textContent = 'Sign in to view profile.';
+        return;
+      }
+
+      const me = await meRes.json();
+      const goals = await goalsRes.json();
+      const products = await productsRes.json();
+
+      profileMeta.textContent = `${me.user.username} (${me.user.email})`;
+      goalMeta.textContent = goals.goal?.type ?? 'MAINTAIN_WEIGHT';
+
+      productList.innerHTML = (products.products ?? [])
+        .map(
+          (item: { name: string; brand?: string; isAiEstimated: boolean }) =>
+            `<li class="rounded-xl border border-slate-200 bg-white p-3">${item.name} ${item.brand ? `- ${item.brand}` : ''} ${item.isAiEstimated ? '<span class="ml-2 text-xs text-rose-600">AI</span>' : ''}</li>`
+        )
+        .join('');
+
+      if (me.user.isAdmin) {
+        const submissionsRes = await fetch('/api/admin/moderation/submissions');
+        if (submissionsRes.ok) {
+          const data = await submissionsRes.json();
+          submissionList.innerHTML = (data.submissions ?? [])
+            .map(
+              (submission: { id: string; product: { name: string }; submittedBy: { username: string } }) =>
+                `<li class="rounded-xl border border-slate-200 bg-white p-3"><p class="font-semibold">${submission.product.name}</p><p class="text-xs text-slate-500">By ${submission.submittedBy.username}</p><div class="mt-2 flex gap-2"><button data-review-id="${submission.id}" data-status="APPROVED" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Approve</button><button data-review-id="${submission.id}" data-status="REJECTED" class="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white">Reject</button></div></li>`
+            )
+            .join('');
+
+          submissionList.querySelectorAll('button[data-review-id]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              await fetch('/api/admin/moderation/submissions', {
+                method: 'PATCH',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  submissionId: button.getAttribute('data-review-id'),
+                  status: button.getAttribute('data-status')
+                })
+              });
+              loadProfile();
+            });
+          });
+        }
+      } else {
+        submissionList.innerHTML = '<li class="rounded-xl border border-slate-200 bg-white p-3">Admin only.</li>';
+      }
+    }
+
+    loadProfile();
+  </script>
+</AppLayout>

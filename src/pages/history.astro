@@ -1,0 +1,101 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import AuthRequired from '../components/AuthRequired.astro';
+
+const locale: 'en' | 'de' = 'en';
+const user = (Astro.locals as any)?.user ?? null;
+---
+
+<AppLayout title="History" currentTab="history" locale={locale}>
+  {
+    !user ? (
+      <AuthRequired />
+    ) : (
+  <section class="rounded-2xl app-card p-4 rise">
+    <h1 class="mb-3 text-xl font-semibold">History</h1>
+    <div class="mb-4 grid grid-cols-2 gap-2">
+      <button id="view-day" class="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white">Day</button>
+      <button id="view-week" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">Week</button>
+    </div>
+
+    <div id="history-content" class="space-y-2 text-sm text-slate-700"></div>
+  </section>
+    )
+  }
+
+  <script>
+    // @ts-nocheck
+    const historyContent = document.querySelector('#history-content') as HTMLDivElement;
+    const viewDay = document.querySelector('#view-day') as HTMLButtonElement | null;
+    const viewWeek = document.querySelector('#view-week') as HTMLButtonElement | null;
+
+    function setActive(mode: 'day' | 'week') {
+      viewDay?.classList.toggle('bg-brand-600', mode === 'day');
+      viewDay?.classList.toggle('text-white', mode === 'day');
+      viewDay?.classList.toggle('bg-slate-100', mode !== 'day');
+      viewDay?.classList.toggle('text-slate-700', mode !== 'day');
+
+      viewWeek?.classList.toggle('bg-brand-600', mode === 'week');
+      viewWeek?.classList.toggle('text-white', mode === 'week');
+      viewWeek?.classList.toggle('bg-slate-100', mode !== 'week');
+      viewWeek?.classList.toggle('text-slate-700', mode !== 'week');
+    }
+
+    async function loadDay() {
+      setActive('day');
+      const res = await fetch('/api/logs/meals');
+      if (!res.ok) {
+        historyContent.textContent = 'Sign in to see your history.';
+        return;
+      }
+
+      const data = await res.json();
+      if (!data.entries?.length) {
+        historyContent.textContent = 'No entries for this day yet.';
+        return;
+      }
+
+      historyContent.innerHTML = data.entries
+        .map(
+          (entry: { mealType: string; calories: number; consumedAt: string }) =>
+            `<div class="rounded-xl border border-slate-200 bg-white p-3">${entry.mealType} - ${Math.round(entry.calories)} kcal - ${new Date(entry.consumedAt).toLocaleTimeString()}</div>`
+        )
+        .join('');
+    }
+
+    async function loadWeek() {
+      setActive('week');
+      const rows = [];
+      for (let offset = 0; offset < 7; offset += 1) {
+        const date = new Date();
+        date.setDate(date.getDate() - offset);
+        const res = await fetch(`/api/logs/meals?date=${date.toISOString()}`);
+        if (!res.ok) {
+          continue;
+        }
+        const data = await res.json();
+        rows.push({
+          date,
+          calories: Math.round(data.summary?.calories ?? 0)
+        });
+      }
+
+      if (!rows.length) {
+        historyContent.textContent = 'No entries for this week yet.';
+        return;
+      }
+
+      historyContent.innerHTML = rows
+        .map(
+          (row) =>
+            `<div class="rounded-xl border border-slate-200 bg-white p-3">${row.date.toLocaleDateString()} - ${row.calories} kcal</div>`
+        )
+        .join('');
+    }
+
+    viewDay?.addEventListener('click', loadDay);
+    viewWeek?.addEventListener('click', loadWeek);
+
+    loadDay();
+  </script>
+</AppLayout>
