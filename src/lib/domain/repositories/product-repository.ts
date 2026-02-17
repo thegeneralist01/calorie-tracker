@@ -18,6 +18,7 @@ export type ProductListItem = {
 export interface ProductRepository {
   createLocalProduct(userId: string, draft: ProductDraft): Promise<ProductListItem>;
   listLocalProducts(userId: string): Promise<ProductListItem[]>;
+  deleteLocalProduct(userId: string, productId: string): Promise<boolean>;
   searchProducts(userId: string, query: string, includeGlobal: boolean): Promise<ProductListItem[]>;
   cloneGlobalProductToLocal(userId: string, productId: string): Promise<ProductListItem>;
   submitProductForModeration(input: {

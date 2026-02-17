@@ -28,6 +28,10 @@ export const contributionSchema = z.object({
   payload: z.record(z.any())
 });
 
+export const deleteProductSchema = z.object({
+  productId: z.string().min(1)
+});
+
 export const searchProductSchema = z.object({
   q: z.string().min(1),
   includeGlobal: z

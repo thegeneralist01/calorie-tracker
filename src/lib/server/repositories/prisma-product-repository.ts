@@ -57,6 +57,18 @@ export class PrismaProductRepository implements ProductRepository {
     return rows.map(mapProduct);
   }
 
+  async deleteLocalProduct(userId: string, productId: string) {
+    const result = await prisma.product.deleteMany({
+      where: {
+        id: productId,
+        ownerUserId: userId,
+        isGlobal: false
+      }
+    });
+
+    return result.count > 0;
+  }
+
   async searchProducts(userId: string, query: string, includeGlobal: boolean) {
     const rows = await prisma.product.findMany({
       where: {

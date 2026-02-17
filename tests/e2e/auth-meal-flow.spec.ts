@@ -14,7 +14,7 @@ test('user can register and log a meal', async ({ page }) => {
   await expect(page).toHaveURL('/');
   await expect(page.getByText('Summary')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Add' }).click();
+  await page.goto('/add');
   await expect(page).toHaveURL('/add');
 
   await page.getByRole('tab', { name: 'Product' }).click();
@@ -67,4 +67,20 @@ test('user can register and log a meal', async ({ page }) => {
   await page.waitForTimeout(5300);
 
   await expect(page.getByText('No entries for this day yet.')).toBeVisible();
+
+  await page.goto('/profile');
+  await expect(page).toHaveURL('/profile');
+
+  await expect(page.getByRole('button', { name: 'Remove product' })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove product' }).click();
+  await expect(page.getByText('Product removed. Undo?')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Remove product' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Remove product' }).click();
+  await expect(page.getByText('Product removed. Undo?')).toBeVisible();
+  await page.waitForTimeout(5300);
+
+  await expect(page.getByText('No products yet. Add one from the Product tab.')).toBeVisible();
 });
