@@ -20,6 +20,17 @@ export class PrismaLogRepository implements LogRepository {
     });
   }
 
+  async deleteMealEntry(input: { userId: string; mealEntryId: string }) {
+    const result = await prisma.mealEntry.deleteMany({
+      where: {
+        id: input.mealEntryId,
+        userId: input.userId
+      }
+    });
+
+    return result.count > 0;
+  }
+
   async listMealEntriesByDay(input: { userId: string; dayStart: Date; dayEnd: Date }) {
     return prisma.mealEntry.findMany({
       where: {

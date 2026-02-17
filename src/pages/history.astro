@@ -19,6 +19,12 @@ const user = (Astro.locals as any)?.user ?? null;
     </div>
 
     <div id="history-content" class="space-y-2 text-sm text-slate-700"></div>
+    <div id="history-toast" class="pointer-events-none fixed bottom-22 left-1/2 z-50 hidden w-[min(90vw,30rem)] -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+      <p id="history-toast-text" class="text-sm text-slate-800"></p>
+      <div class="mt-2 flex items-center justify-end gap-2">
+        <button id="history-toast-undo" type="button" class="pointer-events-auto rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700">Undo</button>
+      </div>
+    </div>
   </section>
     )
   }
@@ -26,8 +32,99 @@ const user = (Astro.locals as any)?.user ?? null;
   <script>
     // @ts-nocheck
     const historyContent = document.querySelector('#history-content') as HTMLDivElement;
+    const historyToast = document.querySelector('#history-toast') as HTMLDivElement | null;
+    const historyToastText = document.querySelector('#history-toast-text') as HTMLParagraphElement | null;
+    const historyToastUndo = document.querySelector('#history-toast-undo') as HTMLButtonElement | null;
     const viewDay = document.querySelector('#view-day') as HTMLButtonElement | null;
     const viewWeek = document.querySelector('#view-week') as HTMLButtonElement | null;
+    let dayEntries: Array<{ id: string; mealType: string; calories: number; consumedAt: string }> = [];
+    let pendingDelete: {
+      entry: { id: string; mealType: string; calories: number; consumedAt: string };
+      index: number;
+      timeoutId: number;
+    } | null = null;
+
+    function showToast(message: string) {
+      if (!historyToast || !historyToastText) {
+        return;
+      }
+
+      historyToastText.textContent = message;
+      historyToast.classList.remove('hidden');
+    }
+
+    function hideToast() {
+      historyToast?.classList.add('hidden');
+    }
+
+    function renderDay() {
+      if (!dayEntries.length) {
+        historyContent.textContent = 'No entries for this day yet.';
+        return;
+      }
+
+      historyContent.innerHTML = dayEntries
+        .map(
+          (entry) =>
+            `<div class="rounded-xl border border-slate-200 bg-white p-3"><div class="flex items-center justify-between gap-3"><div>${entry.mealType} - ${Math.round(entry.calories)} kcal - ${new Date(entry.consumedAt).toLocaleTimeString()}</div><button type="button" data-meal-remove-id="${entry.id}" class="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">Remove</button></div></div>`
+        )
+        .join('');
+    }
+
+    async function commitPendingDelete() {
+      if (!pendingDelete) {
+        return;
+      }
+
+      const activeDelete = pendingDelete;
+      pendingDelete = null;
+      hideToast();
+
+      const response = await fetch('/api/logs/meals', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mealEntryId: activeDelete.entry.id })
+      });
+
+      if (response.ok) {
+        return;
+      }
+
+      const restoreIndex = Math.max(0, Math.min(activeDelete.index, dayEntries.length));
+      dayEntries.splice(restoreIndex, 0, activeDelete.entry);
+      renderDay();
+      showToast('Could not remove meal entry. Please try again.');
+      window.setTimeout(() => {
+        hideToast();
+      }, 2200);
+    }
+
+    function queueDelete(entryId: string) {
+      const index = dayEntries.findIndex((entry) => entry.id === entryId);
+      if (index === -1) {
+        return;
+      }
+
+      if (pendingDelete) {
+        window.clearTimeout(pendingDelete.timeoutId);
+        void commitPendingDelete();
+      }
+
+      const entry = dayEntries[index];
+      dayEntries.splice(index, 1);
+      renderDay();
+
+      showToast('Meal removed. Undo?');
+      const timeoutId = window.setTimeout(() => {
+        void commitPendingDelete();
+      }, 5000);
+
+      pendingDelete = {
+        entry,
+        index,
+        timeoutId
+      };
+    }
 
     function setActive(mode: 'day' | 'week') {
       viewDay?.classList.toggle('bg-brand-600', mode === 'day');
@@ -50,21 +147,17 @@ const user = (Astro.locals as any)?.user ?? null;
       }
 
       const data = await res.json();
-      if (!data.entries?.length) {
-        historyContent.textContent = 'No entries for this day yet.';
-        return;
-      }
-
-      historyContent.innerHTML = data.entries
-        .map(
-          (entry: { mealType: string; calories: number; consumedAt: string }) =>
-            `<div class="rounded-xl border border-slate-200 bg-white p-3">${entry.mealType} - ${Math.round(entry.calories)} kcal - ${new Date(entry.consumedAt).toLocaleTimeString()}</div>`
-        )
-        .join('');
+      dayEntries = Array.isArray(data.entries) ? data.entries : [];
+      renderDay();
     }
 
     async function loadWeek() {
       setActive('week');
+      if (pendingDelete) {
+        window.clearTimeout(pendingDelete.timeoutId);
+        await commitPendingDelete();
+      }
+
       const res = await fetch('/api/logs/meals?range=week');
       if (!res.ok) {
         historyContent.textContent = 'Sign in to see your history.';
@@ -87,8 +180,42 @@ const user = (Astro.locals as any)?.user ?? null;
           (row) =>
             `<div class="rounded-xl border border-slate-200 bg-white p-3">${row.date.toLocaleDateString()} - ${row.calories} kcal</div>`
         )
-        .join('');
+        .join('') +
+        '<p class="mt-1 text-xs text-slate-500">Switch to Day view to remove individual meal entries.</p>';
     }
+
+    historyContent.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement | null;
+      const removeButton = target?.closest('[data-meal-remove-id]') as HTMLButtonElement | null;
+      if (!removeButton) {
+        return;
+      }
+
+      const mealEntryId = removeButton.getAttribute('data-meal-remove-id');
+      if (!mealEntryId) {
+        return;
+      }
+
+      if (!window.confirm('Remove this meal entry?')) {
+        return;
+      }
+
+      queueDelete(mealEntryId);
+    });
+
+    historyToastUndo?.addEventListener('click', () => {
+      if (!pendingDelete) {
+        hideToast();
+        return;
+      }
+
+      window.clearTimeout(pendingDelete.timeoutId);
+      const restoreIndex = Math.max(0, Math.min(pendingDelete.index, dayEntries.length));
+      dayEntries.splice(restoreIndex, 0, pendingDelete.entry);
+      pendingDelete = null;
+      hideToast();
+      renderDay();
+    });
 
     viewDay?.addEventListener('click', loadDay);
     viewWeek?.addEventListener('click', loadWeek);

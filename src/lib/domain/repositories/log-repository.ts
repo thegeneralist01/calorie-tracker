@@ -16,6 +16,7 @@ export type MealLogInput = {
 
 export interface LogRepository {
   createMealEntry(input: MealLogInput): Promise<void>;
+  deleteMealEntry(input: { userId: string; mealEntryId: string }): Promise<boolean>;
   listMealEntriesByDay(input: { userId: string; dayStart: Date; dayEnd: Date }): Promise<
     Array<{
       id: string;

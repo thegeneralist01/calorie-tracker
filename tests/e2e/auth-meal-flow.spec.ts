@@ -44,4 +44,27 @@ test('user can register and log a meal', async ({ page }) => {
 
   await expect(page).toHaveURL('/');
   await expect(page.locator('#sum-eaten')).not.toHaveText('0 kcal');
+
+  await page.goto('/history');
+  await expect(page).toHaveURL('/history');
+
+  await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+
+  page.once('dialog', async (dialog) => {
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByText('Meal removed. Undo?')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+
+  page.once('dialog', async (dialog) => {
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByText('Meal removed. Undo?')).toBeVisible();
+  await page.waitForTimeout(5300);
+
+  await expect(page.getByText('No entries for this day yet.')).toBeVisible();
 });

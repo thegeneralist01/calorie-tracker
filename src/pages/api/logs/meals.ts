@@ -115,3 +115,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   return json({ ok: true }, 201);
 };
+
+export const DELETE: APIRoute = async ({ request, locals }) => {
+  if (!locals.user) {
+    return unauthorized();
+  }
+
+  const payload = await request.json().catch(() => null);
+  const mealEntryId = typeof payload?.mealEntryId === 'string' ? payload.mealEntryId : '';
+  if (!mealEntryId) {
+    return json({ error: 'mealEntryId is required' }, 400);
+  }
+
+  const deleted = await logRepository.deleteMealEntry({
+    userId: locals.user.id,
+    mealEntryId
+  });
+
+  if (!deleted) {
+    return json({ error: 'Meal entry not found' }, 404);
+  }
+
+  return json({ ok: true });
+};
