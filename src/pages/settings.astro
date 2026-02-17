@@ -76,6 +76,19 @@ const user = (Astro.locals as any)?.user ?? null;
       </fieldset>
 
       <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-slate-800">Custom unit aliases</legend>
+        <p class="text-xs text-slate-600">Define personal units like <code>1 cup = 240 ml</code> or <code>2 scoop = 1 serving</code>.</p>
+        <div id="unit-alias-list" class="space-y-2"></div>
+        <button
+          id="add-unit-alias"
+          type="button"
+          class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Add unit alias
+        </button>
+      </fieldset>
+
+      <fieldset class="space-y-3">
         <legend class="text-sm font-semibold text-slate-800">Reminders</legend>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label class="inline-flex items-center gap-2 pt-7 text-sm text-slate-700">
@@ -140,11 +153,197 @@ const user = (Astro.locals as any)?.user ?? null;
 
   <script>
     // @ts-nocheck
+    const CANONICAL_UNITS = new Set(['g', 'ml', 'serving', 'piece']);
+
+    function normalizeUnit(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function createAliasRow(initial = {}) {
+      const row = document.createElement('div');
+      row.className = 'grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-5';
+      row.innerHTML = `
+        <label class="block text-sm">
+          <span class="mb-1 block text-slate-700">X amount</span>
+          <input type="number" min="0.0001" step="0.0001" name="aliasFromAmount" class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1" value="${initial.fromAmount ?? ''}" />
+        </label>
+        <label class="block text-sm">
+          <span class="mb-1 block text-slate-700">Y unit</span>
+          <input type="text" name="aliasFromUnit" class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1" placeholder="cup" value="${initial.fromUnit ?? ''}" />
+        </label>
+        <label class="block text-sm">
+          <span class="mb-1 block text-slate-700">A amount</span>
+          <input type="number" min="0.0001" step="0.0001" name="aliasToAmount" class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1" value="${initial.toAmount ?? ''}" />
+        </label>
+        <label class="block text-sm">
+          <span class="mb-1 block text-slate-700">B unit</span>
+          <input type="text" name="aliasToUnit" class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1" placeholder="ml" value="${initial.toUnit ?? ''}" />
+        </label>
+        <div class="flex items-end">
+          <button type="button" class="alias-remove w-full rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-semibold text-rose-700">Remove</button>
+        </div>
+      `;
+
+      row.querySelector('.alias-remove')?.addEventListener('click', () => {
+        row.remove();
+      });
+
+      return row;
+    }
+
+    function collectAliases() {
+      const rows = Array.from(document.querySelectorAll('#unit-alias-list > div'));
+      const aliases = [];
+
+      for (const row of rows) {
+        const fromAmountRaw = row.querySelector('input[name="aliasFromAmount"]')?.value;
+        const fromUnitRaw = row.querySelector('input[name="aliasFromUnit"]')?.value;
+        const toAmountRaw = row.querySelector('input[name="aliasToAmount"]')?.value;
+        const toUnitRaw = row.querySelector('input[name="aliasToUnit"]')?.value;
+
+        const fromAmount = Number(fromAmountRaw);
+        const toAmount = Number(toAmountRaw);
+        const fromUnit = normalizeUnit(fromUnitRaw);
+        const toUnit = normalizeUnit(toUnitRaw);
+
+        if (!fromAmountRaw && !fromUnitRaw && !toAmountRaw && !toUnitRaw) {
+          continue;
+        }
+
+        aliases.push({ fromAmount, fromUnit, toAmount, toUnit });
+      }
+
+      return aliases;
+    }
+
+    function validateAliases(aliases) {
+      const aliasUnits = new Set();
+
+      for (const alias of aliases) {
+        if (!Number.isFinite(alias.fromAmount) || alias.fromAmount <= 0) {
+          return 'X amount must be a positive number.';
+        }
+        if (!Number.isFinite(alias.toAmount) || alias.toAmount <= 0) {
+          return 'A amount must be a positive number.';
+        }
+        if (!/^[a-z][a-z0-9_-]{0,31}$/.test(alias.fromUnit)) {
+          return 'Y unit must use lowercase letters, numbers, _ or -.';
+        }
+        if (!/^[a-z][a-z0-9_-]{0,31}$/.test(alias.toUnit)) {
+          return 'B unit must use lowercase letters, numbers, _ or -.';
+        }
+        if (CANONICAL_UNITS.has(alias.fromUnit)) {
+          return `Cannot redefine canonical unit "${alias.fromUnit}".`;
+        }
+        if (alias.fromUnit === alias.toUnit) {
+          return `Alias "${alias.fromUnit}" cannot reference itself.`;
+        }
+        if (aliasUnits.has(alias.fromUnit)) {
+          return `Duplicate alias unit "${alias.fromUnit}".`;
+        }
+        aliasUnits.add(alias.fromUnit);
+      }
+
+      for (const alias of aliases) {
+        if (!CANONICAL_UNITS.has(alias.toUnit) && !aliasUnits.has(alias.toUnit)) {
+          return `Alias "${alias.fromUnit}" references unknown unit "${alias.toUnit}".`;
+        }
+      }
+
+      const graph = new Map();
+      for (const alias of aliases) {
+        if (!CANONICAL_UNITS.has(alias.toUnit)) {
+          graph.set(alias.fromUnit, alias.toUnit);
+        }
+      }
+
+      for (const start of graph.keys()) {
+        const seen = new Set();
+        let cursor = start;
+        while (cursor) {
+          if (seen.has(cursor)) {
+            return 'Alias cycle detected.';
+          }
+          seen.add(cursor);
+          cursor = graph.get(cursor);
+        }
+      }
+
+      return null;
+    }
+
     const settingsForm = document.querySelector('#settings-form');
+    const aliasList = document.querySelector('#unit-alias-list');
+    const addAliasButton = document.querySelector('#add-unit-alias');
+
+    addAliasButton?.addEventListener('click', () => {
+      aliasList?.append(createAliasRow());
+    });
+
+    async function loadSettings() {
+      if (!settingsForm || !aliasList) {
+        return;
+      }
+
+      const response = await fetch('/api/settings');
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      const user = data.user ?? {};
+      const settings = data.settings ?? {};
+
+      if (user.locale) {
+        settingsForm.querySelector('select[name="locale"]').value = user.locale;
+      }
+      if (typeof user.dayCutoffMinutes === 'number') {
+        settingsForm.querySelector('input[name="dayCutoffMinutes"]').value = String(user.dayCutoffMinutes);
+      }
+      if (typeof user.weekStartsOn === 'number') {
+        settingsForm.querySelector('select[name="weekStartsOn"]').value = String(user.weekStartsOn);
+      }
+      if (typeof settings.waterGoalLiters === 'number') {
+        settingsForm.querySelector('input[name="waterGoalLiters"]').value = String(settings.waterGoalLiters);
+      }
+      if (typeof settings.useMetricDistance === 'boolean') {
+        settingsForm.querySelector('input[name="useMetricDistance"]').checked = settings.useMetricDistance;
+      }
+      if (settings.precisionMode) {
+        settingsForm.querySelector('select[name="precisionMode"]').value = settings.precisionMode;
+      }
+      if (typeof settings.remindersEnabled === 'boolean') {
+        settingsForm.querySelector('input[name="remindersEnabled"]').checked = settings.remindersEnabled;
+      }
+      if (typeof settings.reminderQuietHoursStart === 'string') {
+        settingsForm.querySelector('input[name="reminderQuietHoursStart"]').value = settings.reminderQuietHoursStart;
+      }
+      if (typeof settings.reminderQuietHoursEnd === 'string') {
+        settingsForm.querySelector('input[name="reminderQuietHoursEnd"]').value = settings.reminderQuietHoursEnd;
+      }
+      if (typeof settings.aiPhotoEstimationEnabled === 'boolean') {
+        settingsForm.querySelector('input[name="aiPhotoEstimationEnabled"]').checked = settings.aiPhotoEstimationEnabled;
+      }
+
+      aliasList.innerHTML = '';
+      const aliases = Array.isArray(settings.customUnitAliases) ? settings.customUnitAliases : [];
+      if (!aliases.length) {
+        aliasList.append(createAliasRow());
+      } else {
+        aliases.forEach((alias) => aliasList.append(createAliasRow(alias)));
+      }
+    }
+
     if (settingsForm) {
       settingsForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const formData = new FormData(settingsForm as HTMLFormElement);
+        const customUnitAliases = collectAliases();
+        const validationError = validateAliases(customUnitAliases);
+        if (validationError) {
+          window.alert(validationError);
+          return;
+        }
 
         const body = {
           locale: String(formData.get('locale')),
@@ -156,7 +355,8 @@ const user = (Astro.locals as any)?.user ?? null;
           remindersEnabled: Boolean(formData.get('remindersEnabled')),
           reminderQuietHoursStart: String(formData.get('reminderQuietHoursStart')),
           reminderQuietHoursEnd: String(formData.get('reminderQuietHoursEnd')),
-          aiPhotoEstimationEnabled: Boolean(formData.get('aiPhotoEstimationEnabled'))
+          aiPhotoEstimationEnabled: Boolean(formData.get('aiPhotoEstimationEnabled')),
+          customUnitAliases
         };
 
         const response = await fetch('/api/settings', {
@@ -169,6 +369,8 @@ const user = (Astro.locals as any)?.user ?? null;
           window.location.reload();
         }
       });
+
+      loadSettings();
     }
 
     const toDownload = (filename: string, contents: string) => {

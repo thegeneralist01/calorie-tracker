@@ -85,7 +85,7 @@ const user = (Astro.locals as any)?.user ?? null;
 
               <label class="block text-sm">
                 <span class="mb-1 block text-slate-700">Unit</span>
-                <select name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                <select id="meal-quantity-unit" name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
                   <option value="g">g</option>
                   <option value="ml">ml</option>
                   <option value="serving">serving</option>
@@ -147,7 +147,7 @@ const user = (Astro.locals as any)?.user ?? null;
               </label>
               <label class="block text-sm">
                 <span class="mb-1 block text-slate-700">Nutrition basis unit</span>
-                <select name="referenceUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                <select id="product-reference-unit" name="referenceUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
                   <option value="g">g</option>
                   <option value="ml">ml</option>
                   <option value="serving">serving</option>
@@ -198,9 +198,143 @@ const user = (Astro.locals as any)?.user ?? null;
       return value;
     }
 
+    const CANONICAL_UNITS = ['g', 'ml', 'serving', 'piece'];
+
+    function isCanonicalUnit(unit) {
+      return CANONICAL_UNITS.includes(unit);
+    }
+
+    function formatAmount(value) {
+      if (!Number.isFinite(value)) {
+        return '0';
+      }
+      if (Number.isInteger(value)) {
+        return String(value);
+      }
+      return String(Number(value.toFixed(4)));
+    }
+
+    function normalizeAliases(rawAliases) {
+      return (Array.isArray(rawAliases) ? rawAliases : [])
+        .filter(
+          (alias) =>
+            typeof alias?.fromAmount === 'number' &&
+            typeof alias?.fromUnit === 'string' &&
+            typeof alias?.toAmount === 'number' &&
+            typeof alias?.toUnit === 'string'
+        )
+        .map((alias) => ({
+          fromAmount: alias.fromAmount,
+          fromUnit: normalizeUnit(alias.fromUnit),
+          toAmount: alias.toAmount,
+          toUnit: normalizeUnit(alias.toUnit)
+        }));
+    }
+
+    function validateAliases(aliases) {
+      const aliasUnits = new Set();
+
+      for (const alias of aliases) {
+        if (!alias.fromUnit || !alias.toUnit) {
+          return { ok: false, error: 'Alias units must be non-empty.' };
+        }
+        if (!(alias.fromAmount > 0) || !(alias.toAmount > 0)) {
+          return { ok: false, error: 'Alias amounts must be positive.' };
+        }
+        if (isCanonicalUnit(alias.fromUnit)) {
+          return { ok: false, error: `Cannot redefine canonical unit "${alias.fromUnit}".` };
+        }
+        if (alias.fromUnit === alias.toUnit) {
+          return { ok: false, error: `Alias "${alias.fromUnit}" cannot reference itself.` };
+        }
+        if (aliasUnits.has(alias.fromUnit)) {
+          return { ok: false, error: `Duplicate alias unit "${alias.fromUnit}".` };
+        }
+        aliasUnits.add(alias.fromUnit);
+      }
+
+      for (const alias of aliases) {
+        if (!isCanonicalUnit(alias.toUnit) && !aliasUnits.has(alias.toUnit)) {
+          return { ok: false, error: `Alias "${alias.fromUnit}" references unknown unit "${alias.toUnit}".` };
+        }
+      }
+
+      const graph = new Map();
+      for (const alias of aliases) {
+        if (!isCanonicalUnit(alias.toUnit)) {
+          graph.set(alias.fromUnit, alias.toUnit);
+        }
+      }
+
+      for (const start of graph.keys()) {
+        const seen = new Set();
+        let cursor = start;
+        while (cursor) {
+          if (seen.has(cursor)) {
+            return { ok: false, error: 'Alias cycle detected.' };
+          }
+          seen.add(cursor);
+          cursor = graph.get(cursor);
+        }
+      }
+
+      return { ok: true, aliases };
+    }
+
+    function resolveToCanonical(value, unit, aliases) {
+      const normalizedAliases = normalizeAliases(aliases);
+      const validation = validateAliases(normalizedAliases);
+      if (!validation.ok) {
+        return { ok: false, error: validation.error };
+      }
+
+      const aliasMap = new Map(validation.aliases.map((alias) => [alias.fromUnit, alias]));
+      let resolvedValue = value;
+      let resolvedUnit = normalizeUnit(unit);
+      const seen = new Set();
+
+      while (!isCanonicalUnit(resolvedUnit)) {
+        if (seen.has(resolvedUnit)) {
+          return { ok: false, error: 'Alias cycle detected during conversion.' };
+        }
+        seen.add(resolvedUnit);
+        const alias = aliasMap.get(resolvedUnit);
+        if (!alias) {
+          return { ok: false, error: `Unknown unit "${resolvedUnit}".` };
+        }
+
+        resolvedValue = resolvedValue * (alias.toAmount / alias.fromAmount);
+        resolvedUnit = alias.toUnit;
+      }
+
+      return {
+        ok: true,
+        value: resolvedValue,
+        unit: resolvedUnit
+      };
+    }
+
+    function buildUnitOptions(aliases) {
+      const aliasNames = normalizeAliases(aliases).map((alias) => alias.fromUnit);
+      const uniqueAliasNames = [...new Set(aliasNames)].filter((name) => !isCanonicalUnit(name));
+      return [...CANONICAL_UNITS, ...uniqueAliasNames];
+    }
+
+    function applyUnitOptions(selectElement, options) {
+      if (!selectElement) {
+        return;
+      }
+
+      const previous = selectElement.value;
+      selectElement.innerHTML = options.map((option) => `<option value="${option}">${option}</option>`).join('');
+      if (options.includes(previous)) {
+        selectElement.value = previous;
+      }
+    }
+
     function parseServingSizeLabel(label) {
       const normalized = String(label || '').trim().toLowerCase();
-      const match = normalized.match(/^(\d+(?:\.\d+)?)\s*(g|ml|serving|piece|grams|gram|milliliters|milliliter|servings|pieces)$/i);
+      const match = normalized.match(/^(\d+(?:\.\d+)?)\s*([a-z][a-z0-9_-]{0,31})$/i);
       if (!match) {
         return null;
       }
@@ -249,10 +383,13 @@ const user = (Astro.locals as any)?.user ?? null;
       const mealError = document.querySelector('#meal-error');
       const productSearch = document.querySelector('#product-search');
       const mealProductSelect = document.querySelector('#meal-product-select');
+      const mealQuantityUnitSelect = document.querySelector('#meal-quantity-unit');
+      const productReferenceUnitSelect = document.querySelector('#product-reference-unit');
       const productForm = document.querySelector('#product-form');
 
       let products = [];
       let productsLoaded = false;
+      let unitAliases = [];
 
       function setTabStyles(activeTab) {
         const mealActive = activeTab === 'meal';
@@ -310,6 +447,19 @@ const user = (Astro.locals as any)?.user ?? null;
           option.textContent = productLabel(product);
           mealProductSelect.append(option);
         });
+      }
+
+      async function loadUnitAliases() {
+        const response = await fetch('/api/settings');
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        unitAliases = normalizeAliases(data?.settings?.customUnitAliases ?? []);
+        const unitOptions = buildUnitOptions(unitAliases);
+        applyUnitOptions(mealQuantityUnitSelect, unitOptions);
+        applyUnitOptions(productReferenceUnitSelect, unitOptions);
       }
 
       async function loadProducts() {
@@ -399,14 +549,22 @@ const user = (Astro.locals as any)?.user ?? null;
           return;
         }
 
-        if (quantityUnit !== basis.unit) {
+        const normalizedQuantity = resolveToCanonical(quantityValue, quantityUnit, unitAliases);
+        if (!normalizedQuantity.ok) {
+          if (mealError) {
+            mealError.textContent = normalizedQuantity.error;
+          }
+          return;
+        }
+
+        if (normalizedQuantity.unit !== basis.unit) {
           if (mealError) {
             mealError.textContent = `Unit mismatch: this product is defined per ${basis.value} ${basis.unit}, so log using ${basis.unit}.`;
           }
           return;
         }
 
-        const factor = quantityValue / basis.value;
+        const factor = normalizedQuantity.value / basis.value;
         const calories = Number(selectedProduct.calories ?? 0) * factor;
         const protein = Number(selectedProduct.protein ?? 0) * factor;
         const carbs = Number(selectedProduct.carbs ?? 0) * factor;
@@ -414,8 +572,8 @@ const user = (Astro.locals as any)?.user ?? null;
         const body = {
           mealType: String(formData.get('mealType')),
           productId,
-          quantityValue,
-          quantityUnit,
+          quantityValue: normalizedQuantity.value,
+          quantityUnit: normalizedQuantity.unit,
           calories,
           protein,
           carbs,
@@ -449,6 +607,12 @@ const user = (Astro.locals as any)?.user ?? null;
         const formData = new FormData(productForm);
         const referenceValue = Number(formData.get('referenceValue'));
         const referenceUnit = String(formData.get('referenceUnit'));
+        const normalizedReference = resolveToCanonical(referenceValue, referenceUnit, unitAliases);
+        if (!normalizedReference.ok) {
+          window.alert(normalizedReference.error);
+          return;
+        }
+
         const body = {
           name: String(formData.get('name')),
           brand: String(formData.get('brand') || ''),
@@ -456,7 +620,7 @@ const user = (Astro.locals as any)?.user ?? null;
           protein: parseOptionalNumber(formData.get('protein')),
           carbs: parseOptionalNumber(formData.get('carbs')),
           fat: parseOptionalNumber(formData.get('fat')),
-          servingSizeLabel: `${referenceValue} ${referenceUnit}`,
+          servingSizeLabel: `${formatAmount(normalizedReference.value)} ${normalizedReference.unit}`,
           source: formData.get('isAiEstimated') ? 'AI_ESTIMATE' : 'MANUAL',
           isAiEstimated: Boolean(formData.get('isAiEstimated'))
         };
@@ -471,6 +635,10 @@ const user = (Astro.locals as any)?.user ?? null;
           window.location.href = '/profile';
         }
       });
+
+      applyUnitOptions(mealQuantityUnitSelect, CANONICAL_UNITS);
+      applyUnitOptions(productReferenceUnitSelect, CANONICAL_UNITS);
+      loadUnitAliases();
 
       const initialTab = root.dataset.initialTab === 'product' ? 'product' : 'meal';
       setTab(initialTab, false);

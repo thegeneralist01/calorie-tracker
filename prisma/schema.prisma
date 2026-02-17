@@ -116,6 +116,7 @@ model UserSettings {
   pwaInstallPromptDismissed  Boolean  @default(false)
   pwaUpdateToastEnabled      Boolean  @default(true)
   aiPhotoEstimationEnabled   Boolean  @default(false)
+  customUnitAliasesJson      String?
   aiPhotoConsentAt           DateTime?
   aiPhotoConsentPolicy       String?
   createdAt                  DateTime @default(now())

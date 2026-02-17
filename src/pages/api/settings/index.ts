@@ -2,6 +2,10 @@ import type { APIRoute } from 'astro';
 import { prisma } from '../../../lib/server/db/prisma';
 import { json, unauthorized } from '../../../lib/server/http';
 import { settingsUpdateSchema } from '../../../lib/schemas/settings';
+import {
+  parseUnitAliasesJson,
+  validateUnitAliases
+} from '../../../lib/domain/unit-aliases';
 
 export const GET: APIRoute = async ({ locals }) => {
   if (!locals.user) {
@@ -22,9 +26,16 @@ export const GET: APIRoute = async ({ locals }) => {
     })
   ]);
 
+  const customUnitAliases = parseUnitAliasesJson(settings?.customUnitAliasesJson);
+
   return json({
     user,
-    settings
+    settings: settings
+      ? {
+          ...settings,
+          customUnitAliases
+        }
+      : null
   });
 };
 
@@ -40,6 +51,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const data = parsed.data;
+  const aliasesValidation = validateUnitAliases(data.customUnitAliases ?? []);
+  if (!aliasesValidation.ok) {
+    return json({ error: aliasesValidation.error }, 400);
+  }
+  const customUnitAliasesJson = JSON.stringify(aliasesValidation.aliases);
 
   await prisma.$transaction([
     prisma.user.update({
@@ -60,7 +76,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         remindersEnabled: data.remindersEnabled ?? true,
         reminderQuietHoursStart: data.reminderQuietHoursStart,
         reminderQuietHoursEnd: data.reminderQuietHoursEnd,
-        aiPhotoEstimationEnabled: data.aiPhotoEstimationEnabled ?? false
+        aiPhotoEstimationEnabled: data.aiPhotoEstimationEnabled ?? false,
+        customUnitAliasesJson
       },
       update: {
         waterGoalLiters: data.waterGoalLiters,
@@ -69,7 +86,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         remindersEnabled: data.remindersEnabled,
         reminderQuietHoursStart: data.reminderQuietHoursStart,
         reminderQuietHoursEnd: data.reminderQuietHoursEnd,
-        aiPhotoEstimationEnabled: data.aiPhotoEstimationEnabled
+        aiPhotoEstimationEnabled: data.aiPhotoEstimationEnabled,
+        customUnitAliasesJson
       }
     })
   ]);
