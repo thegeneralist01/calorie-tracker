@@ -65,20 +65,17 @@ const user = (Astro.locals as any)?.user ?? null;
 
     async function loadWeek() {
       setActive('week');
-      const rows = [];
-      for (let offset = 0; offset < 7; offset += 1) {
-        const date = new Date();
-        date.setDate(date.getDate() - offset);
-        const res = await fetch(`/api/logs/meals?date=${date.toISOString()}`);
-        if (!res.ok) {
-          continue;
-        }
-        const data = await res.json();
-        rows.push({
-          date,
-          calories: Math.round(data.summary?.calories ?? 0)
-        });
+      const res = await fetch('/api/logs/meals?range=week');
+      if (!res.ok) {
+        historyContent.textContent = 'Sign in to see your history.';
+        return;
       }
+
+      const data = await res.json();
+      const rows = (data.days ?? []).map((day: { date: string; summary: { calories: number } }) => ({
+        date: new Date(day.date),
+        calories: Math.round(day.summary?.calories ?? 0)
+      }));
 
       if (!rows.length) {
         historyContent.textContent = 'No entries for this week yet.';

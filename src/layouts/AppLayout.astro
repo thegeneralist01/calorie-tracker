@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { getDictionary } from '../lib/i18n';
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title: string;
@@ -28,6 +29,7 @@ const tabs = [
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0f766e" />
+    <ClientRouter />
     <title>{title}</title>
   </head>
   <body class="font-sans antialiased">
@@ -40,12 +42,14 @@ const tabs = [
               <>
                 <a
                   href="/history"
+                  data-astro-prefetch
                   class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 transition hover:bg-slate-100"
                 >
                   {t.quickCalendar}
                 </a>
                 <a
                   href="/profile"
+                  data-astro-prefetch
                   class="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 transition hover:bg-slate-100"
                 >
                   {t.quickProfile}
@@ -63,10 +67,11 @@ const tabs = [
                 Logout
               </button>
             ) : (
-              <a
-                href="/login"
-                class="rounded-full bg-brand-600 px-3 py-1 font-medium text-white transition hover:bg-brand-700"
-              >
+                <a
+                  href="/login"
+                  data-astro-prefetch
+                  class="rounded-full bg-brand-600 px-3 py-1 font-medium text-white transition hover:bg-brand-700"
+                >
                 Login
               </a>
             )
@@ -87,6 +92,7 @@ const tabs = [
               <li>
                 <a
                   href={tab.href}
+                  data-astro-prefetch
                   aria-label={tab.label}
                   class:list={[
                     'block rounded-xl px-4 py-3 text-center text-sm font-medium transition',
@@ -106,13 +112,30 @@ const tabs = [
 
     <script>
       // @ts-nocheck
-      const statusBar = document.createElement('div');
-      statusBar.className =
-        'pointer-events-none fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs text-white opacity-0 transition';
-      document.body.append(statusBar);
+      function getStatusBar() {
+        let statusBar = document.querySelector('#pwa-status-bar');
+        if (statusBar) {
+          return statusBar;
+        }
 
-      import('virtual:pwa-register')
-        .then(({ registerSW }) => {
+        statusBar = document.createElement('div');
+        statusBar.id = 'pwa-status-bar';
+        statusBar.className =
+          'pointer-events-none fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs text-white opacity-0 transition';
+        document.body.append(statusBar);
+        return statusBar;
+      }
+
+      async function setupPwaStatus() {
+        if (window.__caloriePwaRegistered) {
+          return;
+        }
+
+        window.__caloriePwaRegistered = true;
+        const statusBar = getStatusBar();
+
+        try {
+          const { registerSW } = await import('virtual:pwa-register');
           registerSW({
             immediate: true,
             onOfflineReady() {
@@ -125,17 +148,33 @@ const tabs = [
               statusBar.classList.remove('opacity-0');
             }
           });
-        })
-        .catch(() => {
+        } catch {
           statusBar.remove();
-        });
+        }
+      }
 
-      document.querySelector('#logout-button')?.addEventListener('click', async () => {
-        await fetch('/api/auth/logout', {
-          method: 'POST'
+      function bindLogoutButton() {
+        const logoutButton = document.querySelector('#logout-button');
+        if (!logoutButton || logoutButton.dataset.bound === 'true') {
+          return;
+        }
+
+        logoutButton.dataset.bound = 'true';
+        logoutButton.addEventListener('click', async () => {
+          await fetch('/api/auth/logout', {
+            method: 'POST'
+          });
+          window.location.href = '/login';
         });
-        window.location.href = '/login';
-      });
+      }
+
+      function onPageLoad() {
+        setupPwaStatus();
+        bindLogoutButton();
+      }
+
+      document.addEventListener('astro:page-load', onPageLoad);
+      onPageLoad();
     </script>
   </body>
 </html>

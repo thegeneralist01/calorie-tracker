@@ -12,158 +12,160 @@ const user = (Astro.locals as any)?.user ?? null;
     !user ? (
       <AuthRequired />
     ) : (
-      <section class="mb-4 rounded-2xl app-card p-4 rise">
+      <section id="add-tabs-root" data-initial-tab={selectedTab} class="mb-4 rounded-2xl app-card p-4 rise">
         <h1 class="mb-3 text-xl font-semibold">Quick Add</h1>
-        <div class="mb-4 grid grid-cols-2 gap-2">
-          <a
-            href="/add?tab=meal"
-            class:list={[
-              'rounded-xl px-4 py-2 text-center text-sm font-medium',
-              selectedTab === 'meal' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
-            ]}
+        <div role="tablist" aria-label="Add mode" class="mb-4 grid grid-cols-2 gap-2">
+          <button
+            id="meal-tab-trigger"
+            type="button"
+            role="tab"
+            aria-controls="meal-panel"
+            data-tab="meal"
+            class="rounded-xl px-4 py-2 text-center text-sm font-medium"
           >
             Meal
-          </a>
-          <a
-            href="/add?tab=product"
-            class:list={[
-              'rounded-xl px-4 py-2 text-center text-sm font-medium',
-              selectedTab === 'product' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
-            ]}
+          </button>
+          <button
+            id="product-tab-trigger"
+            type="button"
+            role="tab"
+            aria-controls="product-panel"
+            data-tab="product"
+            class="rounded-xl px-4 py-2 text-center text-sm font-medium"
           >
             Product
-          </a>
+          </button>
         </div>
 
-        {
-          selectedTab === 'meal' ? (
-            <form id="meal-form" class="space-y-3">
-              <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Meal Type</span>
-                <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                  <option value="BREAKFAST">Breakfast</option>
-                  <option value="LUNCH">Lunch</option>
-                  <option value="DINNER">Dinner</option>
-                  <option value="SNACKS">Snacks</option>
-                </select>
-              </label>
+        <div id="meal-panel" role="tabpanel" aria-labelledby="meal-tab-trigger">
+          <form id="meal-form" class="space-y-3">
+            <label class="block text-sm">
+              <span class="mb-1 block text-slate-700">Meal Type</span>
+              <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                <option value="BREAKFAST">Breakfast</option>
+                <option value="LUNCH">Lunch</option>
+                <option value="DINNER">Dinner</option>
+                <option value="SNACKS">Snacks</option>
+              </select>
+            </label>
 
+            <label class="block text-sm">
+              <span class="mb-1 block text-slate-700">Find product</span>
+              <input
+                id="product-search"
+                type="text"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                placeholder="Type to filter products"
+              />
+            </label>
+
+            <label class="block text-sm">
+              <span class="mb-1 block text-slate-700">Product</span>
+              <select
+                id="meal-product-select"
+                required
+                name="productId"
+                size="6"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+              ></select>
+            </label>
+
+            <div class="grid grid-cols-2 gap-3">
               <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Find product</span>
+                <span class="mb-1 block text-slate-700">Quantity</span>
                 <input
-                  id="product-search"
-                  type="text"
+                  required
+                  min="0.1"
+                  step="0.1"
+                  type="number"
+                  name="quantityValue"
                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                  placeholder="Type to filter products"
                 />
               </label>
 
               <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Product</span>
-                <select
-                  id="meal-product-select"
+                <span class="mb-1 block text-slate-700">Unit</span>
+                <select name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                  <option value="g">g</option>
+                  <option value="ml">ml</option>
+                  <option value="serving">serving</option>
+                  <option value="piece">piece</option>
+                </select>
+              </label>
+            </div>
+
+            <p id="meal-error" class="text-sm text-rose-600"></p>
+
+            <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+              Save meal entry
+            </button>
+          </form>
+        </div>
+
+        <div id="product-panel" role="tabpanel" aria-labelledby="product-tab-trigger">
+          <form id="product-form" class="space-y-3">
+            <label class="block text-sm">
+              <span class="mb-1 block text-slate-700">Name</span>
+              <input required name="name" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+            </label>
+            <label class="block text-sm">
+              <span class="mb-1 block text-slate-700">Brand</span>
+              <input name="brand" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+            </label>
+
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">kcal</span>
+                <input min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Protein</span>
+                <input min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Carbs</span>
+                <input min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Fat</span>
+                <input min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Nutrition basis quantity</span>
+                <input
                   required
-                  name="productId"
-                  size="6"
+                  min="0.1"
+                  step="0.1"
+                  type="number"
+                  name="referenceValue"
+                  value="100"
                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                ></select>
-              </label>
-
-              <div class="grid grid-cols-2 gap-3">
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Quantity</span>
-                  <input
-                    required
-                    min="0.1"
-                    step="0.1"
-                    type="number"
-                    name="quantityValue"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                  />
-                </label>
-
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Unit</span>
-                  <select name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                    <option value="g">g</option>
-                    <option value="ml">ml</option>
-                    <option value="serving">serving</option>
-                    <option value="piece">piece</option>
-                  </select>
-                </label>
-              </div>
-
-              <p id="meal-error" class="text-sm text-rose-600"></p>
-
-              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
-                Save meal entry
-              </button>
-            </form>
-          ) : (
-            <form id="product-form" class="space-y-3">
-              <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Name</span>
-                <input required name="name" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                />
               </label>
               <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Brand</span>
-                <input name="brand" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                <span class="mb-1 block text-slate-700">Nutrition basis unit</span>
+                <select name="referenceUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                  <option value="g">g</option>
+                  <option value="ml">ml</option>
+                  <option value="serving">serving</option>
+                  <option value="piece">piece</option>
+                </select>
               </label>
+            </div>
 
-              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">kcal</span>
-                  <input min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-                </label>
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Protein</span>
-                  <input min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-                </label>
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Carbs</span>
-                  <input min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-                </label>
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Fat</span>
-                  <input min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-                </label>
-              </div>
+            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="isAiEstimated" class="rounded" />
+              AI-estimated nutrition (cannot be globally published)
+            </label>
 
-              <div class="grid grid-cols-2 gap-3">
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Nutrition basis quantity</span>
-                  <input
-                    required
-                    min="0.1"
-                    step="0.1"
-                    type="number"
-                    name="referenceValue"
-                    value="100"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                  />
-                </label>
-                <label class="block text-sm">
-                  <span class="mb-1 block text-slate-700">Nutrition basis unit</span>
-                  <select name="referenceUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                    <option value="g">g</option>
-                    <option value="ml">ml</option>
-                    <option value="serving">serving</option>
-                    <option value="piece">piece</option>
-                  </select>
-                </label>
-              </div>
-
-              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" name="isAiEstimated" class="rounded" />
-                AI-estimated nutrition (cannot be globally published)
-              </label>
-
-              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
-                Save local product
-              </button>
-            </form>
-          )
-        }
+            <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+              Save local product
+            </button>
+          </form>
+        </div>
       </section>
     )
   }
@@ -174,6 +176,7 @@ const user = (Astro.locals as any)?.user ?? null;
       if (value === null || value === undefined || String(value).trim() === '') {
         return undefined;
       }
+
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : undefined;
     }
@@ -198,13 +201,14 @@ const user = (Astro.locals as any)?.user ?? null;
     function parseServingSizeLabel(label) {
       const normalized = String(label || '').trim().toLowerCase();
       const match = normalized.match(/^(\d+(?:\.\d+)?)\s*(g|ml|serving|piece|grams|gram|milliliters|milliliter|servings|pieces)$/i);
-      if (match) {
-        return {
-          value: Number(match[1]),
-          unit: normalizeUnit(match[2])
-        };
+      if (!match) {
+        return null;
       }
-      return null;
+
+      return {
+        value: Number(match[1]),
+        unit: normalizeUnit(match[2])
+      };
     }
 
     function fuzzyMatch(text, query) {
@@ -216,6 +220,7 @@ const user = (Astro.locals as any)?.user ?? null;
       if (haystack.includes(needle)) {
         return true;
       }
+
       let idx = 0;
       for (const ch of haystack) {
         if (ch === needle[idx]) {
@@ -225,93 +230,154 @@ const user = (Astro.locals as any)?.user ?? null;
           }
         }
       }
+
       return false;
     }
 
-    const mealForm = document.querySelector('#meal-form');
-    const mealError = document.querySelector('#meal-error');
-    const productSearch = document.querySelector('#product-search');
-    const mealProductSelect = document.querySelector('#meal-product-select');
-    let products = [];
-
-    function productLabel(product) {
-      const brandPart = product.brand ? ` - ${product.brand}` : '';
-      const servingPart = product.servingSizeLabel ? ` (${product.servingSizeLabel})` : '';
-      return `${product.name}${brandPart}${servingPart}`;
-    }
-
-    function renderProductOptions(query) {
-      if (!mealProductSelect) {
+    function initAddPage() {
+      const root = document.querySelector('#add-tabs-root');
+      if (!root || root.dataset.bound === 'true') {
         return;
       }
+      root.dataset.bound = 'true';
 
-      const filtered = products.filter((product) => fuzzyMatch(productLabel(product), query));
-      mealProductSelect.innerHTML = '';
+      const mealTabTrigger = document.querySelector('#meal-tab-trigger');
+      const productTabTrigger = document.querySelector('#product-tab-trigger');
+      const mealPanel = document.querySelector('#meal-panel');
+      const productPanel = document.querySelector('#product-panel');
+      const mealForm = document.querySelector('#meal-form');
+      const mealError = document.querySelector('#meal-error');
+      const productSearch = document.querySelector('#product-search');
+      const mealProductSelect = document.querySelector('#meal-product-select');
+      const productForm = document.querySelector('#product-form');
 
-      if (filtered.length === 0) {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No matching products';
-        mealProductSelect.append(option);
-        mealProductSelect.value = '';
-        return;
+      let products = [];
+      let productsLoaded = false;
+
+      function setTabStyles(activeTab) {
+        const mealActive = activeTab === 'meal';
+        const productActive = activeTab === 'product';
+
+        mealPanel?.classList.toggle('hidden', !mealActive);
+        productPanel?.classList.toggle('hidden', !productActive);
+
+        mealTabTrigger?.setAttribute('aria-selected', mealActive ? 'true' : 'false');
+        productTabTrigger?.setAttribute('aria-selected', productActive ? 'true' : 'false');
+
+        mealTabTrigger?.classList.toggle('bg-brand-600', mealActive);
+        mealTabTrigger?.classList.toggle('text-white', mealActive);
+        mealTabTrigger?.classList.toggle('bg-slate-100', !mealActive);
+        mealTabTrigger?.classList.toggle('text-slate-700', !mealActive);
+
+        productTabTrigger?.classList.toggle('bg-brand-600', productActive);
+        productTabTrigger?.classList.toggle('text-white', productActive);
+        productTabTrigger?.classList.toggle('bg-slate-100', !productActive);
+        productTabTrigger?.classList.toggle('text-slate-700', !productActive);
       }
 
-      filtered.forEach((product) => {
-        const option = document.createElement('option');
-        option.value = product.id;
-        option.textContent = productLabel(product);
-        mealProductSelect.append(option);
-      });
-    }
-
-    async function loadProducts() {
-      if (!mealForm) {
-        return;
+      function syncTabInUrl(activeTab) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('tab', activeTab);
+        window.history.replaceState({}, '', `${nextUrl.pathname}?${nextUrl.searchParams.toString()}`);
       }
 
-      const response = await fetch('/api/products');
-      if (!response.ok) {
-        if (mealError) {
-          mealError.textContent = 'Unable to load products. Please try again.';
+      function productLabel(product) {
+        const brandPart = product.brand ? ` - ${product.brand}` : '';
+        const servingPart = product.servingSizeLabel ? ` (${product.servingSizeLabel})` : '';
+        return `${product.name}${brandPart}${servingPart}`;
+      }
+
+      function renderProductOptions(query) {
+        if (!mealProductSelect) {
+          return;
         }
-        return;
-      }
 
-      const data = await response.json();
-      products = Array.isArray(data.products) ? data.products : [];
-      if (products.length === 0) {
-        if (mealError) {
-          mealError.textContent = 'No products found. Add one in the Product tab first.';
-        }
-        if (mealProductSelect) {
-          mealProductSelect.innerHTML = '';
+        const filtered = products.filter((product) => fuzzyMatch(productLabel(product), query));
+        mealProductSelect.innerHTML = '';
+
+        if (filtered.length === 0) {
           const option = document.createElement('option');
           option.value = '';
-          option.textContent = 'No products available';
+          option.textContent = 'No matching products';
           mealProductSelect.append(option);
+          mealProductSelect.value = '';
+          return;
         }
-        return;
+
+        filtered.forEach((product) => {
+          const option = document.createElement('option');
+          option.value = product.id;
+          option.textContent = productLabel(product);
+          mealProductSelect.append(option);
+        });
       }
 
-      if (mealError) {
-        mealError.textContent = '';
+      async function loadProducts() {
+        if (productsLoaded || !mealForm) {
+          return;
+        }
+
+        const response = await fetch('/api/products');
+        if (!response.ok) {
+          if (mealError) {
+            mealError.textContent = 'Unable to load products. Please try again.';
+          }
+          return;
+        }
+
+        const data = await response.json();
+        products = Array.isArray(data.products) ? data.products : [];
+        productsLoaded = true;
+
+        if (products.length === 0) {
+          if (mealError) {
+            mealError.textContent = 'No products found. Add one in the Product tab first.';
+          }
+          if (mealProductSelect) {
+            mealProductSelect.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No products available';
+            mealProductSelect.append(option);
+          }
+          return;
+        }
+
+        if (mealError) {
+          mealError.textContent = '';
+        }
+        renderProductOptions('');
       }
-      renderProductOptions('');
-    }
 
-    productSearch?.addEventListener('input', () => {
-      renderProductOptions(productSearch.value);
-    });
+      async function setTab(activeTab, shouldSyncUrl) {
+        setTabStyles(activeTab);
+        if (shouldSyncUrl) {
+          syncTabInUrl(activeTab);
+        }
+        if (activeTab === 'meal') {
+          await loadProducts();
+        }
+      }
 
-    if (mealForm) {
-      mealForm.addEventListener('submit', async (event) => {
+      productSearch?.addEventListener('input', () => {
+        renderProductOptions(productSearch.value);
+      });
+
+      mealTabTrigger?.addEventListener('click', () => {
+        setTab('meal', true);
+      });
+
+      productTabTrigger?.addEventListener('click', () => {
+        setTab('product', true);
+      });
+
+      mealForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (mealError) {
           mealError.textContent = '';
         }
 
-        const formData = new FormData(mealForm as HTMLFormElement);
+        const formData = new FormData(mealForm);
         const productId = String(formData.get('productId') || '');
         const selectedProduct = products.find((item) => item.id === productId);
 
@@ -378,14 +444,9 @@ const user = (Astro.locals as any)?.user ?? null;
         }
       });
 
-      loadProducts();
-    }
-
-    const productForm = document.querySelector('#product-form');
-    if (productForm) {
-      productForm.addEventListener('submit', async (event) => {
+      productForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const formData = new FormData(productForm as HTMLFormElement);
+        const formData = new FormData(productForm);
         const referenceValue = Number(formData.get('referenceValue'));
         const referenceUnit = String(formData.get('referenceUnit'));
         const body = {
@@ -410,6 +471,12 @@ const user = (Astro.locals as any)?.user ?? null;
           window.location.href = '/profile';
         }
       });
+
+      const initialTab = root.dataset.initialTab === 'product' ? 'product' : 'meal';
+      setTab(initialTab, false);
     }
+
+    document.addEventListener('astro:page-load', initAddPage);
+    initAddPage();
   </script>
 </AppLayout>

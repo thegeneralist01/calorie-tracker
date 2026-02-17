@@ -17,7 +17,7 @@ test('user can register and log a meal', async ({ page }) => {
   await page.getByRole('link', { name: 'Add' }).click();
   await expect(page).toHaveURL('/add');
 
-  await page.getByRole('link', { name: 'Product' }).click();
+  await page.getByRole('tab', { name: 'Product' }).click();
   await expect(page).toHaveURL('/add?tab=product');
 
   await page.getByRole('textbox', { name: 'Name' }).fill('Chicken Bowl');
@@ -36,7 +36,8 @@ test('user can register and log a meal', async ({ page }) => {
   await expect(page).toHaveURL('/add?tab=meal');
 
   await page.locator('#product-search').fill('chkn b');
-  await page.locator('#meal-product-select').selectOption({ label: /Chicken Bowl/ });
+  const firstProductValue = await page.locator('#meal-product-select option').first().getAttribute('value');
+  await page.locator('#meal-product-select').selectOption(firstProductValue ?? '');
   await page.locator('input[name="quantityValue"]').fill('250');
   await page.locator('select[name="quantityUnit"]').selectOption('g');
   await page.getByRole('button', { name: 'Save meal entry' }).click();
