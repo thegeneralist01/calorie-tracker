@@ -34,6 +34,8 @@ test('user can register and log a meal', async ({ page }) => {
 
   await page.goto('/add?tab=meal');
   await expect(page).toHaveURL('/add?tab=meal');
+  await expect(page.getByRole('tab', { name: 'Existing Meal' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Manual' })).toHaveAttribute('aria-selected', 'false');
 
   await page.locator('#product-search').fill('chkn b');
   const firstProductValue = await page.locator('#meal-product-select option').first().getAttribute('value');

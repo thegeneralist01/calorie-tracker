@@ -38,68 +38,164 @@ const user = (Astro.locals as any)?.user ?? null;
         </div>
 
         <div id="meal-panel" role="tabpanel" aria-labelledby="meal-tab-trigger">
-          <form id="meal-form" class="space-y-3">
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Meal Type</span>
-              <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                <option value="BREAKFAST">Breakfast</option>
-                <option value="LUNCH">Lunch</option>
-                <option value="DINNER">Dinner</option>
-                <option value="SNACKS">Snacks</option>
-              </select>
-            </label>
+          <div role="tablist" aria-label="Meal add mode" class="mb-4 grid grid-cols-2 gap-2">
+            <button
+              id="meal-existing-tab-trigger"
+              type="button"
+              role="tab"
+              aria-controls="meal-existing-panel"
+              class="rounded-xl px-4 py-2 text-center text-sm font-medium"
+            >
+              Existing Meal
+            </button>
+            <button
+              id="meal-manual-tab-trigger"
+              type="button"
+              role="tab"
+              aria-controls="meal-manual-panel"
+              class="rounded-xl px-4 py-2 text-center text-sm font-medium"
+            >
+              Manual
+            </button>
+          </div>
 
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Find product</span>
-              <input
-                id="product-search"
-                type="text"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                placeholder="Type to filter products"
-              />
-            </label>
-
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Product</span>
-              <select
-                id="meal-product-select"
-                required
-                name="productId"
-                size="6"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-              ></select>
-            </label>
-
-            <div class="grid grid-cols-2 gap-3">
+          <div id="meal-existing-panel" role="tabpanel" aria-labelledby="meal-existing-tab-trigger">
+            <form id="meal-existing-form" class="space-y-3">
               <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Quantity</span>
+                <span class="mb-1 block text-slate-700">Meal Type</span>
+                <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                  <option value="BREAKFAST">Breakfast</option>
+                  <option value="LUNCH">Lunch</option>
+                  <option value="DINNER">Dinner</option>
+                  <option value="SNACKS">Snacks</option>
+                </select>
+              </label>
+
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Find product</span>
                 <input
-                  required
-                  min="0.1"
-                  step="0.1"
-                  type="number"
-                  name="quantityValue"
+                  id="product-search"
+                  type="text"
                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  placeholder="Type to filter products"
                 />
               </label>
 
               <label class="block text-sm">
-                <span class="mb-1 block text-slate-700">Unit</span>
-                <select id="meal-quantity-unit" name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                  <option value="g">g</option>
-                  <option value="ml">ml</option>
-                  <option value="serving">serving</option>
-                  <option value="piece">piece</option>
+                <span class="mb-1 block text-slate-700">Product</span>
+                <select
+                  id="meal-product-select"
+                  required
+                  name="productId"
+                  size="6"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                ></select>
+              </label>
+
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Quantity</span>
+                  <input
+                    required
+                    min="0.1"
+                    step="0.1"
+                    type="number"
+                    name="quantityValue"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Unit</span>
+                  <select id="meal-quantity-unit" name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <option value="g">g</option>
+                    <option value="ml">ml</option>
+                    <option value="serving">serving</option>
+                    <option value="piece">piece</option>
+                  </select>
+                </label>
+              </div>
+
+              <p id="meal-existing-error" class="text-sm text-rose-600"></p>
+
+              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+                Save meal entry
+              </button>
+            </form>
+          </div>
+
+          <div id="meal-manual-panel" role="tabpanel" aria-labelledby="meal-manual-tab-trigger" class="hidden">
+            <form id="meal-manual-form" class="space-y-3">
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Meal Type</span>
+                <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                  <option value="BREAKFAST">Breakfast</option>
+                  <option value="LUNCH">Lunch</option>
+                  <option value="DINNER">Dinner</option>
+                  <option value="SNACKS">Snacks</option>
                 </select>
               </label>
-            </div>
 
-            <p id="meal-error" class="text-sm text-rose-600"></p>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Name (optional)</span>
+                <input
+                  type="text"
+                  name="itemName"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  placeholder="e.g. Homemade curry"
+                />
+              </label>
 
-            <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
-              Save meal entry
-            </button>
-          </form>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Quantity</span>
+                  <input
+                    required
+                    min="0.1"
+                    step="0.1"
+                    type="number"
+                    name="quantityValue"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Unit</span>
+                  <select id="manual-quantity-unit" name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <option value="g">g</option>
+                    <option value="ml">ml</option>
+                    <option value="serving">serving</option>
+                    <option value="piece">piece</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">kcal</span>
+                  <input required min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Protein</span>
+                  <input required min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Carbs</span>
+                  <input required min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Fat</span>
+                  <input required min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+              </div>
+
+              <p id="meal-manual-error" class="text-sm text-rose-600"></p>
+
+              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+                Save meal entry
+              </button>
+            </form>
+          </div>
         </div>
 
         <div id="product-panel" role="tabpanel" aria-labelledby="product-tab-trigger">
@@ -378,18 +474,26 @@ const user = (Astro.locals as any)?.user ?? null;
       const mealTabTrigger = document.querySelector('#meal-tab-trigger');
       const productTabTrigger = document.querySelector('#product-tab-trigger');
       const mealPanel = document.querySelector('#meal-panel');
+      const mealExistingTabTrigger = document.querySelector('#meal-existing-tab-trigger');
+      const mealManualTabTrigger = document.querySelector('#meal-manual-tab-trigger');
+      const mealExistingPanel = document.querySelector('#meal-existing-panel');
+      const mealManualPanel = document.querySelector('#meal-manual-panel');
       const productPanel = document.querySelector('#product-panel');
-      const mealForm = document.querySelector('#meal-form');
-      const mealError = document.querySelector('#meal-error');
+      const mealExistingForm = document.querySelector('#meal-existing-form');
+      const mealManualForm = document.querySelector('#meal-manual-form');
+      const mealExistingError = document.querySelector('#meal-existing-error');
+      const mealManualError = document.querySelector('#meal-manual-error');
       const productSearch = document.querySelector('#product-search');
       const mealProductSelect = document.querySelector('#meal-product-select');
       const mealQuantityUnitSelect = document.querySelector('#meal-quantity-unit');
+      const manualQuantityUnitSelect = document.querySelector('#manual-quantity-unit');
       const productReferenceUnitSelect = document.querySelector('#product-reference-unit');
       const productForm = document.querySelector('#product-form');
 
       let products = [];
       let productsLoaded = false;
       let unitAliases = [];
+      let mealMode = 'existing';
 
       function setTabStyles(activeTab) {
         const mealActive = activeTab === 'meal';
@@ -410,6 +514,32 @@ const user = (Astro.locals as any)?.user ?? null;
         productTabTrigger?.classList.toggle('text-white', productActive);
         productTabTrigger?.classList.toggle('bg-slate-100', !productActive);
         productTabTrigger?.classList.toggle('text-slate-700', !productActive);
+      }
+
+      function setMealModeStyles(activeMode) {
+        const existingActive = activeMode === 'existing';
+        const manualActive = activeMode === 'manual';
+
+        mealExistingPanel?.classList.toggle('hidden', !existingActive);
+        mealManualPanel?.classList.toggle('hidden', !manualActive);
+
+        mealExistingTabTrigger?.setAttribute('aria-selected', existingActive ? 'true' : 'false');
+        mealManualTabTrigger?.setAttribute('aria-selected', manualActive ? 'true' : 'false');
+
+        mealExistingTabTrigger?.classList.toggle('bg-brand-600', existingActive);
+        mealExistingTabTrigger?.classList.toggle('text-white', existingActive);
+        mealExistingTabTrigger?.classList.toggle('bg-slate-100', !existingActive);
+        mealExistingTabTrigger?.classList.toggle('text-slate-700', !existingActive);
+
+        mealManualTabTrigger?.classList.toggle('bg-brand-600', manualActive);
+        mealManualTabTrigger?.classList.toggle('text-white', manualActive);
+        mealManualTabTrigger?.classList.toggle('bg-slate-100', !manualActive);
+        mealManualTabTrigger?.classList.toggle('text-slate-700', !manualActive);
+      }
+
+      function setMealMode(mode) {
+        mealMode = mode;
+        setMealModeStyles(mode);
       }
 
       function syncTabInUrl(activeTab) {
@@ -459,18 +589,19 @@ const user = (Astro.locals as any)?.user ?? null;
         unitAliases = normalizeAliases(data?.settings?.customUnitAliases ?? []);
         const unitOptions = buildUnitOptions(unitAliases);
         applyUnitOptions(mealQuantityUnitSelect, unitOptions);
+        applyUnitOptions(manualQuantityUnitSelect, unitOptions);
         applyUnitOptions(productReferenceUnitSelect, unitOptions);
       }
 
       async function loadProducts() {
-        if (productsLoaded || !mealForm) {
+        if (productsLoaded || !mealExistingForm) {
           return;
         }
 
         const response = await fetch('/api/products');
         if (!response.ok) {
-          if (mealError) {
-            mealError.textContent = 'Unable to load products. Please try again.';
+          if (mealExistingError) {
+            mealExistingError.textContent = 'Unable to load products. Please try again.';
           }
           return;
         }
@@ -480,8 +611,8 @@ const user = (Astro.locals as any)?.user ?? null;
         productsLoaded = true;
 
         if (products.length === 0) {
-          if (mealError) {
-            mealError.textContent = 'No products found. Add one in the Product tab first.';
+          if (mealExistingError) {
+            mealExistingError.textContent = 'No products found. Add one in the Product tab first.';
           }
           if (mealProductSelect) {
             mealProductSelect.innerHTML = '';
@@ -493,8 +624,8 @@ const user = (Astro.locals as any)?.user ?? null;
           return;
         }
 
-        if (mealError) {
-          mealError.textContent = '';
+        if (mealExistingError) {
+          mealExistingError.textContent = '';
         }
         renderProductOptions('');
       }
@@ -513,6 +644,14 @@ const user = (Astro.locals as any)?.user ?? null;
         renderProductOptions(productSearch.value);
       });
 
+      mealExistingTabTrigger?.addEventListener('click', () => {
+        setMealMode('existing');
+      });
+
+      mealManualTabTrigger?.addEventListener('click', () => {
+        setMealMode('manual');
+      });
+
       mealTabTrigger?.addEventListener('click', () => {
         setTab('meal', true);
       });
@@ -521,19 +660,19 @@ const user = (Astro.locals as any)?.user ?? null;
         setTab('product', true);
       });
 
-      mealForm?.addEventListener('submit', async (event) => {
+      mealExistingForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (mealError) {
-          mealError.textContent = '';
+        if (mealExistingError) {
+          mealExistingError.textContent = '';
         }
 
-        const formData = new FormData(mealForm);
+        const formData = new FormData(mealExistingForm);
         const productId = String(formData.get('productId') || '');
         const selectedProduct = products.find((item) => item.id === productId);
 
         if (!selectedProduct) {
-          if (mealError) {
-            mealError.textContent = 'Select a product before saving the meal.';
+          if (mealExistingError) {
+            mealExistingError.textContent = 'Select a product before saving the meal.';
           }
           return;
         }
@@ -543,23 +682,23 @@ const user = (Astro.locals as any)?.user ?? null;
         const basis = parseServingSizeLabel(selectedProduct.servingSizeLabel);
 
         if (!basis) {
-          if (mealError) {
-            mealError.textContent = 'This product has no nutrition basis. Update it in the Product tab first.';
+          if (mealExistingError) {
+            mealExistingError.textContent = 'This product has no nutrition basis. Update it in the Product tab first.';
           }
           return;
         }
 
         const normalizedQuantity = resolveToCanonical(quantityValue, quantityUnit, unitAliases);
         if (!normalizedQuantity.ok) {
-          if (mealError) {
-            mealError.textContent = normalizedQuantity.error;
+          if (mealExistingError) {
+            mealExistingError.textContent = normalizedQuantity.error;
           }
           return;
         }
 
         if (normalizedQuantity.unit !== basis.unit) {
-          if (mealError) {
-            mealError.textContent = `Unit mismatch: this product is defined per ${basis.value} ${basis.unit}, so log using ${basis.unit}.`;
+          if (mealExistingError) {
+            mealExistingError.textContent = `Unit mismatch: this product is defined per ${basis.value} ${basis.unit}, so log using ${basis.unit}.`;
           }
           return;
         }
@@ -597,8 +736,55 @@ const user = (Astro.locals as any)?.user ?? null;
           return;
         }
 
-        if (mealError) {
-          mealError.textContent = 'Could not save meal. Please review inputs and try again.';
+        if (mealExistingError) {
+          mealExistingError.textContent = 'Could not save meal. Please review inputs and try again.';
+        }
+      });
+
+      mealManualForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (mealManualError) {
+          mealManualError.textContent = '';
+        }
+
+        const formData = new FormData(mealManualForm);
+        const quantityValue = Number(formData.get('quantityValue'));
+        const quantityUnit = String(formData.get('quantityUnit'));
+        const normalizedQuantity = resolveToCanonical(quantityValue, quantityUnit, unitAliases);
+        if (!normalizedQuantity.ok) {
+          if (mealManualError) {
+            mealManualError.textContent = normalizedQuantity.error;
+          }
+          return;
+        }
+
+        const body = {
+          mealType: String(formData.get('mealType')),
+          quantityValue: normalizedQuantity.value,
+          quantityUnit: normalizedQuantity.unit,
+          calories: Number(formData.get('calories')),
+          protein: Number(formData.get('protein')),
+          carbs: Number(formData.get('carbs')),
+          fat: Number(formData.get('fat')),
+          snapshot: {
+            itemName: String(formData.get('itemName') || '').trim() || null,
+            source: 'manual-add'
+          }
+        };
+
+        const response = await fetch('/api/logs/meals', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          window.location.href = '/';
+          return;
+        }
+
+        if (mealManualError) {
+          mealManualError.textContent = 'Could not save meal. Please review inputs and try again.';
         }
       });
 
@@ -637,11 +823,13 @@ const user = (Astro.locals as any)?.user ?? null;
       });
 
       applyUnitOptions(mealQuantityUnitSelect, CANONICAL_UNITS);
+      applyUnitOptions(manualQuantityUnitSelect, CANONICAL_UNITS);
       applyUnitOptions(productReferenceUnitSelect, CANONICAL_UNITS);
       loadUnitAliases();
 
       const initialTab = root.dataset.initialTab === 'product' ? 'product' : 'meal';
       setTab(initialTab, false);
+      setMealMode('existing');
     }
 
     document.addEventListener('astro:page-load', initAddPage);
