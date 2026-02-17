@@ -13,155 +13,352 @@ const user = (Astro.locals as any)?.user ?? null;
       <AuthRequired />
     ) : (
       <section class="mb-4 rounded-2xl app-card p-4 rise">
-    <h1 class="mb-3 text-xl font-semibold">Quick Add</h1>
-    <div class="mb-4 grid grid-cols-2 gap-2">
-      <a
-        href="/add?tab=meal"
-        class:list={[
-          'rounded-xl px-4 py-2 text-center text-sm font-medium',
-          selectedTab === 'meal' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
-        ]}
-      >
-        Meal
-      </a>
-      <a
-        href="/add?tab=product"
-        class:list={[
-          'rounded-xl px-4 py-2 text-center text-sm font-medium',
-          selectedTab === 'product' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
-        ]}
-      >
-        Product
-      </a>
-    </div>
+        <h1 class="mb-3 text-xl font-semibold">Quick Add</h1>
+        <div class="mb-4 grid grid-cols-2 gap-2">
+          <a
+            href="/add?tab=meal"
+            class:list={[
+              'rounded-xl px-4 py-2 text-center text-sm font-medium',
+              selectedTab === 'meal' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
+            ]}
+          >
+            Meal
+          </a>
+          <a
+            href="/add?tab=product"
+            class:list={[
+              'rounded-xl px-4 py-2 text-center text-sm font-medium',
+              selectedTab === 'product' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
+            ]}
+          >
+            Product
+          </a>
+        </div>
 
-    {
-      selectedTab === 'meal' ? (
-        <form id="meal-form" class="space-y-3">
-          <label class="block text-sm">
-            <span class="mb-1 block text-slate-700">Meal Type</span>
-            <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-              <option value="BREAKFAST">Breakfast</option>
-              <option value="LUNCH">Lunch</option>
-              <option value="DINNER">Dinner</option>
-              <option value="SNACKS">Snacks</option>
-            </select>
-          </label>
+        {
+          selectedTab === 'meal' ? (
+            <form id="meal-form" class="space-y-3">
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Meal Type</span>
+                <select name="mealType" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                  <option value="BREAKFAST">Breakfast</option>
+                  <option value="LUNCH">Lunch</option>
+                  <option value="DINNER">Dinner</option>
+                  <option value="SNACKS">Snacks</option>
+                </select>
+              </label>
 
-          <label class="block text-sm">
-            <span class="mb-1 block text-slate-700">Item Name</span>
-            <input
-              required
-              type="text"
-              name="itemName"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-              placeholder="e.g. Greek Yogurt"
-            />
-          </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Find product</span>
+                <input
+                  id="product-search"
+                  type="text"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  placeholder="Type to filter products"
+                />
+              </label>
 
-          <div class="grid grid-cols-2 gap-3">
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Quantity</span>
-              <input required min="1" type="number" name="quantityValue" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Product</span>
+                <select
+                  id="meal-product-select"
+                  required
+                  name="productId"
+                  size="6"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                ></select>
+              </label>
 
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Unit</span>
-              <select name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
-                <option value="g">g</option>
-                <option value="ml">ml</option>
-                <option value="serving">serving</option>
-                <option value="piece">piece</option>
-              </select>
-            </label>
-          </div>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Quantity</span>
+                  <input
+                    required
+                    min="0.1"
+                    step="0.1"
+                    type="number"
+                    name="quantityValue"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
 
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">kcal</span>
-              <input required min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Protein</span>
-              <input required min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Carbs</span>
-              <input required min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Fat</span>
-              <input required min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-          </div>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Unit</span>
+                  <select name="quantityUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <option value="g">g</option>
+                    <option value="ml">ml</option>
+                    <option value="serving">serving</option>
+                    <option value="piece">piece</option>
+                  </select>
+                </label>
+              </div>
 
-          <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
-            Save meal entry
-          </button>
-        </form>
-      ) : (
-        <form id="product-form" class="space-y-3">
-          <label class="block text-sm">
-            <span class="mb-1 block text-slate-700">Name</span>
-            <input required name="name" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-          </label>
-          <label class="block text-sm">
-            <span class="mb-1 block text-slate-700">Brand</span>
-            <input name="brand" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-          </label>
+              <p id="meal-error" class="text-sm text-rose-600"></p>
 
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">kcal</span>
-              <input min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Protein</span>
-              <input min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Carbs</span>
-              <input min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-            <label class="block text-sm">
-              <span class="mb-1 block text-slate-700">Fat</span>
-              <input min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
-            </label>
-          </div>
+              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+                Save meal entry
+              </button>
+            </form>
+          ) : (
+            <form id="product-form" class="space-y-3">
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Name</span>
+                <input required name="name" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
+              <label class="block text-sm">
+                <span class="mb-1 block text-slate-700">Brand</span>
+                <input name="brand" type="text" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+              </label>
 
-          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" name="isAiEstimated" class="rounded" />
-            AI-estimated nutrition (cannot be globally published)
-          </label>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">kcal</span>
+                  <input min="0" type="number" step="0.1" name="calories" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Protein</span>
+                  <input min="0" type="number" step="0.1" name="protein" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Carbs</span>
+                  <input min="0" type="number" step="0.1" name="carbs" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Fat</span>
+                  <input min="0" type="number" step="0.1" name="fat" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2" />
+                </label>
+              </div>
 
-          <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
-            Save local product
-          </button>
-        </form>
-      )
-    }
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Nutrition basis quantity</span>
+                  <input
+                    required
+                    min="0.1"
+                    step="0.1"
+                    type="number"
+                    name="referenceValue"
+                    value="100"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+                <label class="block text-sm">
+                  <span class="mb-1 block text-slate-700">Nutrition basis unit</span>
+                  <select name="referenceUnit" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <option value="g">g</option>
+                    <option value="ml">ml</option>
+                    <option value="serving">serving</option>
+                    <option value="piece">piece</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="isAiEstimated" class="rounded" />
+                AI-estimated nutrition (cannot be globally published)
+              </label>
+
+              <button class="w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700" type="submit">
+                Save local product
+              </button>
+            </form>
+          )
+        }
       </section>
     )
   }
 
   <script>
     // @ts-nocheck
+    function parseOptionalNumber(value) {
+      if (value === null || value === undefined || String(value).trim() === '') {
+        return undefined;
+      }
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+
+    function normalizeUnit(rawUnit) {
+      const value = String(rawUnit || '').trim().toLowerCase();
+      if (value === 'grams' || value === 'gram') {
+        return 'g';
+      }
+      if (value === 'milliliters' || value === 'milliliter') {
+        return 'ml';
+      }
+      if (value === 'servings') {
+        return 'serving';
+      }
+      if (value === 'pieces') {
+        return 'piece';
+      }
+      return value;
+    }
+
+    function parseServingSizeLabel(label) {
+      const normalized = String(label || '').trim().toLowerCase();
+      const match = normalized.match(/^(\d+(?:\.\d+)?)\s*(g|ml|serving|piece|grams|gram|milliliters|milliliter|servings|pieces)$/i);
+      if (match) {
+        return {
+          value: Number(match[1]),
+          unit: normalizeUnit(match[2])
+        };
+      }
+      return null;
+    }
+
+    function fuzzyMatch(text, query) {
+      const haystack = String(text || '').toLowerCase();
+      const needle = String(query || '').trim().toLowerCase();
+      if (!needle) {
+        return true;
+      }
+      if (haystack.includes(needle)) {
+        return true;
+      }
+      let idx = 0;
+      for (const ch of haystack) {
+        if (ch === needle[idx]) {
+          idx += 1;
+          if (idx === needle.length) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
     const mealForm = document.querySelector('#meal-form');
+    const mealError = document.querySelector('#meal-error');
+    const productSearch = document.querySelector('#product-search');
+    const mealProductSelect = document.querySelector('#meal-product-select');
+    let products = [];
+
+    function productLabel(product) {
+      const brandPart = product.brand ? ` - ${product.brand}` : '';
+      const servingPart = product.servingSizeLabel ? ` (${product.servingSizeLabel})` : '';
+      return `${product.name}${brandPart}${servingPart}`;
+    }
+
+    function renderProductOptions(query) {
+      if (!mealProductSelect) {
+        return;
+      }
+
+      const filtered = products.filter((product) => fuzzyMatch(productLabel(product), query));
+      mealProductSelect.innerHTML = '';
+
+      if (filtered.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No matching products';
+        mealProductSelect.append(option);
+        mealProductSelect.value = '';
+        return;
+      }
+
+      filtered.forEach((product) => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = productLabel(product);
+        mealProductSelect.append(option);
+      });
+    }
+
+    async function loadProducts() {
+      if (!mealForm) {
+        return;
+      }
+
+      const response = await fetch('/api/products');
+      if (!response.ok) {
+        if (mealError) {
+          mealError.textContent = 'Unable to load products. Please try again.';
+        }
+        return;
+      }
+
+      const data = await response.json();
+      products = Array.isArray(data.products) ? data.products : [];
+      if (products.length === 0) {
+        if (mealError) {
+          mealError.textContent = 'No products found. Add one in the Product tab first.';
+        }
+        if (mealProductSelect) {
+          mealProductSelect.innerHTML = '';
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No products available';
+          mealProductSelect.append(option);
+        }
+        return;
+      }
+
+      if (mealError) {
+        mealError.textContent = '';
+      }
+      renderProductOptions('');
+    }
+
+    productSearch?.addEventListener('input', () => {
+      renderProductOptions(productSearch.value);
+    });
+
     if (mealForm) {
       mealForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (mealError) {
+          mealError.textContent = '';
+        }
+
         const formData = new FormData(mealForm as HTMLFormElement);
+        const productId = String(formData.get('productId') || '');
+        const selectedProduct = products.find((item) => item.id === productId);
+
+        if (!selectedProduct) {
+          if (mealError) {
+            mealError.textContent = 'Select a product before saving the meal.';
+          }
+          return;
+        }
+
+        const quantityValue = Number(formData.get('quantityValue'));
+        const quantityUnit = String(formData.get('quantityUnit'));
+        const basis = parseServingSizeLabel(selectedProduct.servingSizeLabel);
+
+        if (!basis) {
+          if (mealError) {
+            mealError.textContent = 'This product has no nutrition basis. Update it in the Product tab first.';
+          }
+          return;
+        }
+
+        if (quantityUnit !== basis.unit) {
+          if (mealError) {
+            mealError.textContent = `Unit mismatch: this product is defined per ${basis.value} ${basis.unit}, so log using ${basis.unit}.`;
+          }
+          return;
+        }
+
+        const factor = quantityValue / basis.value;
+        const calories = Number(selectedProduct.calories ?? 0) * factor;
+        const protein = Number(selectedProduct.protein ?? 0) * factor;
+        const carbs = Number(selectedProduct.carbs ?? 0) * factor;
+        const fat = Number(selectedProduct.fat ?? 0) * factor;
         const body = {
           mealType: String(formData.get('mealType')),
-          quantityValue: Number(formData.get('quantityValue')),
-          quantityUnit: String(formData.get('quantityUnit')),
-          calories: Number(formData.get('calories')),
-          protein: Number(formData.get('protein')),
-          carbs: Number(formData.get('carbs')),
-          fat: Number(formData.get('fat')),
+          productId,
+          quantityValue,
+          quantityUnit,
+          calories,
+          protein,
+          carbs,
+          fat,
           snapshot: {
-            itemName: String(formData.get('itemName')),
-            source: 'manual-add'
+            itemName: selectedProduct.name,
+            brand: selectedProduct.brand ?? null,
+            servingBasis: `${basis.value} ${basis.unit}`,
+            source: 'product-library'
           }
         };
 
@@ -173,8 +370,15 @@ const user = (Astro.locals as any)?.user ?? null;
 
         if (response.ok) {
           window.location.href = '/';
+          return;
+        }
+
+        if (mealError) {
+          mealError.textContent = 'Could not save meal. Please review inputs and try again.';
         }
       });
+
+      loadProducts();
     }
 
     const productForm = document.querySelector('#product-form');
@@ -182,13 +386,16 @@ const user = (Astro.locals as any)?.user ?? null;
       productForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const formData = new FormData(productForm as HTMLFormElement);
+        const referenceValue = Number(formData.get('referenceValue'));
+        const referenceUnit = String(formData.get('referenceUnit'));
         const body = {
           name: String(formData.get('name')),
           brand: String(formData.get('brand') || ''),
-          calories: Number(formData.get('calories') || 0),
-          protein: Number(formData.get('protein') || 0),
-          carbs: Number(formData.get('carbs') || 0),
-          fat: Number(formData.get('fat') || 0),
+          calories: parseOptionalNumber(formData.get('calories')),
+          protein: parseOptionalNumber(formData.get('protein')),
+          carbs: parseOptionalNumber(formData.get('carbs')),
+          fat: parseOptionalNumber(formData.get('fat')),
+          servingSizeLabel: `${referenceValue} ${referenceUnit}`,
           source: formData.get('isAiEstimated') ? 'AI_ESTIMATE' : 'MANUAL',
           isAiEstimated: Boolean(formData.get('isAiEstimated'))
         };

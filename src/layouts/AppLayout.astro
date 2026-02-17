@@ -87,6 +87,7 @@ const tabs = [
               <li>
                 <a
                   href={tab.href}
+                  aria-label={tab.label}
                   class:list={[
                     'block rounded-xl px-4 py-3 text-center text-sm font-medium transition',
                     currentTab === tab.key
@@ -94,7 +95,7 @@ const tabs = [
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   ]}
                 >
-                  {tab.label}
+                  {tab.key === 'add' ? '+' : tab.label}
                 </a>
               </li>
             ))}

@@ -17,12 +17,28 @@ test('user can register and log a meal', async ({ page }) => {
   await page.getByRole('link', { name: 'Add' }).click();
   await expect(page).toHaveURL('/add');
 
-  await page.getByRole('textbox', { name: 'Item Name' }).fill('Chicken Bowl');
+  await page.getByRole('link', { name: 'Product' }).click();
+  await expect(page).toHaveURL('/add?tab=product');
+
+  await page.getByRole('textbox', { name: 'Name' }).fill('Chicken Bowl');
+  await page.getByRole('textbox', { name: 'Brand' }).fill('Test Kitchen');
+  await page.locator('input[name="calories"]').fill('216');
+  await page.locator('input[name="protein"]').fill('16.8');
+  await page.locator('input[name="carbs"]').fill('14');
+  await page.locator('input[name="fat"]').fill('8.8');
+  await page.locator('input[name="referenceValue"]').fill('100');
+  await page.locator('select[name="referenceUnit"]').selectOption('g');
+  await page.getByRole('button', { name: 'Save local product' }).click();
+
+  await expect(page).toHaveURL('/profile');
+
+  await page.goto('/add?tab=meal');
+  await expect(page).toHaveURL('/add?tab=meal');
+
+  await page.locator('#product-search').fill('chkn b');
+  await page.locator('#meal-product-select').selectOption({ label: /Chicken Bowl/ });
   await page.locator('input[name="quantityValue"]').fill('250');
-  await page.locator('input[name="calories"]').fill('540');
-  await page.locator('input[name="protein"]').fill('42');
-  await page.locator('input[name="carbs"]').fill('35');
-  await page.locator('input[name="fat"]').fill('22');
+  await page.locator('select[name="quantityUnit"]').selectOption('g');
   await page.getByRole('button', { name: 'Save meal entry' }).click();
 
   await expect(page).toHaveURL('/');

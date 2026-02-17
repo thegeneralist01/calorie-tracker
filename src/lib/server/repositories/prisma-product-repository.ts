@@ -6,6 +6,8 @@ function mapProduct(product: any) {
     id: product.id,
     name: product.name,
     brand: product.brand,
+    packageSizeLabel: product.packageSizeLabel,
+    servingSizeLabel: product.servingSizeLabel,
     calories: product.calories,
     protein: product.protein,
     carbs: product.carbs,

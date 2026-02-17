@@ -4,6 +4,8 @@ export type ProductListItem = {
   id: string;
   name: string;
   brand: string | null;
+  packageSizeLabel: string | null;
+  servingSizeLabel: string | null;
   calories: number | null;
   protein: number | null;
   carbs: number | null;

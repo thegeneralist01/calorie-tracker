@@ -60,3 +60,9 @@ npx playwright install chromium
   - install, prisma generate, check, lint, test, build, dependency scan
 - Deploy workflow: `.github/workflows/deploy.yml`
   - manual trigger, build artifact upload for controlled production promotion
+
+## Deploy Troubleshooting
+
+- If production logs show `ERR_MODULE_NOT_FOUND` for `dist/server/pages/*.astro.mjs` (for example `/login`), the deployed `dist` is incomplete or stale.
+- Always replace the full `dist` directory atomically during deploy (do not merge into an existing `dist`).
+- Recommended sequence on the host: remove old `dist`, extract new artifact, then restart service.
